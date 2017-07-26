@@ -16,6 +16,7 @@
 */
 
 #include "uciengine.h"
+#include <iostream>
 
 #include <QString>
 #include <QStringList>
@@ -775,14 +776,16 @@ QString UciEngine::sanPv(const QVarLengthArray<QStringRef>& tokens)
 		movesMade++;
 	}
 
-	for (auto token : tokens)
+	for (const QStringRef token : tokens)
 	{
-		auto move = board->moveFromString(token.toString());
+	  qDebug("uciengine: Parsing move " + token.toString().toLatin1() + " from engine.");
+	  auto move = (*board).moveFromString(token.toString());
 		if (move.isNull())
 		{
 			qWarning("Illegal PV move %s from %s",
 				 qPrintable(token.toString()),
 				 qPrintable(name()));
+			std::cout << "Stuff";
 			break;
 		}
 		if (!pv.isEmpty())

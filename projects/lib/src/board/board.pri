@@ -19,6 +19,7 @@ SOURCES += $$PWD/board.cpp \
     $$PWD/side.cpp \
     $$PWD/genericmove.cpp \
     $$PWD/atomicboard.cpp \
+    $$PWD/sjadamboard.cpp \
     $$PWD/losersboard.cpp \
     $$PWD/checklessboard.cpp \
     $$PWD/gothicboard.cpp \
@@ -30,6 +31,7 @@ SOURCES += $$PWD/board.cpp \
     $$PWD/syzygytablebase.cpp
 HEADERS += $$PWD/board.h \
     $$PWD/move.h \
+    $$PWD/sjadammove.h \
     $$PWD/piece.h \
     $$PWD/westernboard.h \
     $$PWD/square.h \
@@ -50,6 +52,7 @@ HEADERS += $$PWD/board.h \
     $$PWD/side.h \
     $$PWD/genericmove.h \
     $$PWD/atomicboard.h \
+    $$PWD/sjadamboard.h \
     $$PWD/losersboard.h \
     $$PWD/checklessboard.h \
     $$PWD/gothicboard.h \

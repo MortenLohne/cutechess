@@ -386,15 +386,19 @@ Move Board::moveFromLanString(const QString& istr)
 	return Move(source, target, promotion.type());
 }
 
-Move Board::moveFromString(const QString& str)
+  Move Board::moveFromString(const QString& str)
 {
+  qDebug("Parsing regular move " + str.toLatin1());
 	Move move = moveFromSanString(str);
 	if (move.isNull())
 	{
 		move = moveFromLanString(str);
-		if (!isLegalMove(move))
+		if (!isLegalMove(move)) {
+		  qDebug("Returning regular null move");
 			return Move();
+		}
 	}
+	qDebug("Returning regular move " + moveString(move, LongAlgebraic).toLatin1());
 	return move;
 }
 

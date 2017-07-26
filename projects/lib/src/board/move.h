@@ -49,8 +49,9 @@ class Move
 		 */
 		Move(int sourceSquare,
 		     int targetSquare,
-		     int promotion = 0);
-
+		     int promotion = 0,
+		     int sjadamSquare = 0);
+		
 		/*!
 		 * The source square.
 		 *
@@ -60,6 +61,8 @@ class Move
 		int sourceSquare() const;
 		/*! The target square. */
 		int targetSquare() const;
+		/*! The intermediate sjadam square. */
+		int sjadamSquare() const;
 		/*!
 		 * Type of the promotion piece.
 		 *
@@ -78,6 +81,7 @@ class Move
 
 	private:
 		quint32 m_data;
+		int m_sjadamSquare;
 };
 
 
@@ -88,16 +92,20 @@ inline Move::Move()
 
 inline Move::Move(int sourceSquare,
 		  int targetSquare,
-		  int promotion)
+		  int promotion,
+		  int sjadamSquare)
 	: m_data(sourceSquare |
 		 (targetSquare << 10) |
 		 (promotion << 20))
 {
+  if (sjadamSquare == 0) {
+    m_sjadamSquare = sourceSquare;
+  }
 	Q_ASSERT(sourceSquare >= 0 && sourceSquare <= 0x3FF);
 	Q_ASSERT(targetSquare >= 0 && targetSquare <= 0x3FF);
 	Q_ASSERT(promotion >= 0 && promotion <= 0x3FF);
 }
-
+ 
 inline bool Move::isNull() const
 {
 	return (m_data == 0);
@@ -105,12 +113,12 @@ inline bool Move::isNull() const
 
 inline bool Move::operator==(const Move& other) const
 {
-	return (m_data == other.m_data);
+	return (m_data == other.m_data && m_sjadamSquare == other.m_sjadamSquare);
 }
 
 inline bool Move::operator!=(const Move& other) const
 {
-	return (m_data != other.m_data);
+	return (m_data != other.m_data && m_sjadamSquare == other.m_sjadamSquare);
 }
 
 inline int Move::sourceSquare() const
@@ -122,6 +130,10 @@ inline int Move::targetSquare() const
 {
 	return (m_data >> 10) & 0x3FF;
 }
+ 
+ inline int Move::sjadamSquare() const {
+   return m_sjadamSquare;
+ }
 
 inline int Move::promotion() const
 {

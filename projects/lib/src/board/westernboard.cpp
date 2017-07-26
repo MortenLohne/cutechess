@@ -1273,9 +1273,8 @@ int WesternBoard::reversibleMoveCount() const
 
 Result WesternBoard::result()
 {
-	QString str;
-
-	// Checkmate/Stalemate
+  QString str = QString();
+  
 	if (!canMove())
 	{
 		if (inCheck(sideToMove()))

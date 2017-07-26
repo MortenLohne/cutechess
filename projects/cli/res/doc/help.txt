@@ -29,6 +29,7 @@ Options:
 			'loop': Loop Chess (Drop Chess)
 			'losers': Loser's Chess
 			'racingkings': Racing Kings Chess
+			'sjadam': Sjadam chess
 			'standard': Standard Chess (default).
   -concurrency N	Set the maximum number of concurrent games to N
   -draw movenumber=NUMBER movecount=COUNT score=SCORE
