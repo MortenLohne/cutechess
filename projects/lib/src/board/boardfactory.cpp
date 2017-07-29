@@ -16,6 +16,7 @@
 */
 
 #include "boardfactory.h"
+#include "andernachboard.h"
 #include "atomicboard.h"
 #include "capablancaboard.h"
 #include "caparandomboard.h"
@@ -32,6 +33,7 @@
 #include "berolinaboard.h"
 #include "chessgiboard.h"
 #include "kingofthehillboard.h"
+#include "knightmateboard.h"
 #include "loopboard.h"
 #include "ncheckboard.h"
 #include "racingkingsboard.h"
@@ -40,6 +42,8 @@ namespace Chess {
 
 REGISTER_BOARD(ThreeCheckBoard, "3check")
 REGISTER_BOARD(FiveCheckBoard, "5check")
+REGISTER_BOARD(AndernachBoard, "andernach")
+REGISTER_BOARD(AntiAndernachBoard, "antiandernach")
 REGISTER_BOARD(AtomicBoard, "atomic")
 REGISTER_BOARD(BerolinaBoard, "berolina")
 REGISTER_BOARD(CapablancaBoard, "capablanca")
@@ -55,10 +59,12 @@ REGISTER_BOARD(GothicBoard, "gothic")
 REGISTER_BOARD(HordeBoard, "horde")
 REGISTER_BOARD(JanusBoard, "janus")
 REGISTER_BOARD(KingOfTheHillBoard, "kingofthehill")
+REGISTER_BOARD(KnightMateBoard, "knightmate")
 REGISTER_BOARD(LoopBoard, "loop")
 REGISTER_BOARD(LosersBoard, "losers")
 REGISTER_BOARD(RacingKingsBoard, "racingkings")
 REGISTER_BOARD(StandardBoard, "standard")
+REGISTER_BOARD(SuperAndernachBoard, "superandernach")
 
 
 ClassRegistry<Board>* BoardFactory::registry()

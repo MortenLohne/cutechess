@@ -318,7 +318,7 @@ Move WesternBoard::moveFromSanString(const QString& str)
 
 	Square sourceSq;
 	Square targetSq;
-	QString::const_iterator it = mstr.begin();
+	QString::const_iterator it = mstr.cbegin();
 
 	// A SAN move can't start with the capture mark, and
 	if (*it == 'x')
@@ -365,7 +365,7 @@ Move WesternBoard::moveFromSanString(const QString& str)
 		sourceSq.setFile(it->toLatin1() - 'a');
 		if (sourceSq.file() < 0 || sourceSq.file() >= width())
 			sourceSq.setFile(-1);
-		else if (++it == mstr.end())
+		else if (++it == mstr.cend())
 			return Move();
 
 		// Source square's rank
@@ -376,7 +376,7 @@ Move WesternBoard::moveFromSanString(const QString& str)
 				return Move();
 			++it;
 		}
-		if (it == mstr.end())
+		if (it == mstr.cend())
 		{
 			// What we thought was the source square, was
 			// actually the target square.
@@ -392,7 +392,7 @@ Move WesternBoard::moveFromSanString(const QString& str)
 		// Capture
 		else if (*it == 'x')
 		{
-			if(++it == mstr.end())
+			if(++it == mstr.cend())
 				return Move();
 			stringIsCapture = true;
 		}
@@ -400,9 +400,9 @@ Move WesternBoard::moveFromSanString(const QString& str)
 		// Target square
 		if (!isValidSquare(targetSq))
 		{
-			if (it + 1 == mstr.end())
+			if (it + 1 == mstr.cend())
 				return Move();
-			targetSq = chessSquare(mstr.mid(it - mstr.begin(), 2));
+			targetSq = chessSquare(mstr.mid(it - mstr.cbegin(), 2));
 			it += 2;
 		}
 	}
@@ -421,9 +421,9 @@ Move WesternBoard::moveFromSanString(const QString& str)
 
 	// Promotion
 	int promotion = Piece::NoPiece;
-	if (it != mstr.end())
+	if (it != mstr.cend())
 	{
-		if ((*it == '=' || *it == '(') && ++it == mstr.end())
+		if ((*it == '=' || *it == '(') && ++it == mstr.cend())
 			return Move();
 
 		promotion = pieceFromSymbol(*it).type();
@@ -866,7 +866,7 @@ void WesternBoard::vMakeMove(const Move& move, BoardTransition* transition)
 		// opportunity for the opponent.
 		else if ((source / m_arwidth - target / m_arwidth) * m_sign == 2)
 		{
-			int epSq = (source + target) / 2;
+			epSq = (source + target) / 2;
 			const Piece opPawn(side.opposite(), Pawn);
 			for (const PawnStep& pstep: m_pawnSteps)
 			{

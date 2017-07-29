@@ -47,8 +47,18 @@ class EvalWidget : public QWidget
 		void onEval(const MoveEvaluation& eval);
 
 	private:
+		enum StatHeaders
+		{
+			NpsHeader,
+			HashHeader,
+			PonderMoveHeader,
+			PonderHitHeader,
+			TbHeader
+		};
+
 		QPointer<ChessPlayer> m_player;
-		QTableWidget* m_table;
+		QTableWidget* m_statsTable;
+		QTableWidget* m_pvTable;
 		int m_depth;
 		QString m_pv;
 };

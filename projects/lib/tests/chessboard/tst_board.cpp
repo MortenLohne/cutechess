@@ -85,15 +85,16 @@ static quint64 perftRoot(const Chess::Board* board,
 
 static quint64 smpPerft(Chess::Board* board, int depth)
 {
-	QVector<Chess::Move> moves(board->legalMoves());
+	const auto moves = board->legalMoves();
 	if (depth <= 1)
 		return moves.size();
 	
 	QVector< QFuture<quint64> > futures;
-	foreach (const Chess::Move& move, moves)
+	for (const auto& move : moves)
 		futures << QtConcurrent::run(perftRoot, board, move, depth);
 
 	quint64 nodeCount = 0;
+	// TODO: use qAsConst() from Qt 5.7
 	foreach (const QFuture<quint64>& future, futures)
 		nodeCount += future.result();
 
@@ -273,6 +274,16 @@ void tst_Board::moveStrings_data() const
 		<< "e8b8 g1e3 h8g6 e1i1"
 		<< "r3kqbnjr/pppp1ppppp/2jn1b4/4p5/4P5/3Q1PNJ2/PPPP2PPPP/RJNBK1B2R b KQkq - 0 1"
 		<< "1kr2qb1jr/pppp1ppppp/2jn1bn3/4p5/4P5/3QBPNJ2/PPPP2PPPP/RJNB3RK1 b - - 0 3";
+	QTest::newRow("knightmate castling san1")
+		<< "knightmate"
+		<< "O-O Be6 Bxe6 Qxe6 Re1 O-O-O"
+		<< "r1b1kbmr/pmp2ppp/1p1p1q2/4p3/2B1P3/1P6/P1PPMPPP/RMBQK2R w KQkq - 0 1"
+		<< "2kr1bmr/pmp2ppp/1p1pq3/4p3/4P3/1P6/P1PPMPPP/RMBQR1K1 w - - 0 4";
+	QTest::newRow("knightmate castling san2")
+		<< "knightmate"
+		<< "Kg1 Be6 Bxe6 Qxe6 Re1 O-O-O"
+		<< "r1b1kbmr/pmp2ppp/1p1p1q2/4p3/2B1P3/1P6/P1PPMPPP/RMBQK2R w KQkq - 0 1"
+		<< "2kr1bmr/pmp2ppp/1p1pq3/4p3/4P3/1P6/P1PPMPPP/RMBQR1K1 w - - 0 4";
 }
 
 void tst_Board::moveStrings()
@@ -285,8 +296,8 @@ void tst_Board::moveStrings()
 	setVariant(variant);
 	QVERIFY(m_board->setFenString(startfen));
 
-	QStringList moveList = moves.split(' ', QString::SkipEmptyParts);
-	foreach (const QString& moveStr, moveList)
+	const auto moveList = moves.split(' ', QString::SkipEmptyParts);
+	for (const auto& moveStr : moveList)
 	{
 		Chess::Move move = m_board->moveFromString(moveStr);
 		QVERIFY(m_board->isLegalMove(move));
@@ -484,7 +495,7 @@ void tst_Board::perft_data() const
 		<< "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"
 		<< 6
 		<< Q_UINT64_C(11030083);
-	
+
 	variant = "capablanca";
 	QTest::newRow("gothic startpos")
 		<< variant
@@ -597,6 +608,18 @@ void tst_Board::perft_data() const
 		<< 5  //4 plies: 197287, 5 plies: 6429490
 		<< Q_UINT64_C(6429490);
 
+	variant = "andernach";
+	QTest::newRow("andernach startpos")
+		<< variant
+		<< "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+		<< 5  //4 plies: 197410, 5 plies: 4870137
+		<< Q_UINT64_C(4870137);
+	QTest::newRow("andernach pos1")
+		<< variant
+		<< "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3"
+		<< 4  //4 plies: 523348, 5 plies: 16330793
+		<< Q_UINT64_C(523348);
+
 	variant = "checkless";
 	QTest::newRow("checkless startpos")
 		<< variant
@@ -617,6 +640,13 @@ void tst_Board::perft_data() const
 		<< "rjnbkqbnjr/pppppppppp/10/10/10/10/PPPPPPPPPP/RJNBKQBNJR w KQkq - 0 1"
 		<< 4 //4 plies: 772074, 5 plies: 26869186
 		<< Q_UINT64_C(772074);
+
+	variant = "knightmate";
+	QTest::newRow("knightmate startpos")
+		<< variant
+		<< "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1"
+		<< 5 //4 plies: 139774, 5 plies: 3249033, 6 plies: 74568983
+		<< Q_UINT64_C(3249033);
 }
 
 void tst_Board::perft()

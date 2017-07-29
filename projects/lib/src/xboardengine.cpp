@@ -120,9 +120,16 @@ void XboardEngine::startGame()
 	if (board()->variant() != "standard")
 		write("variant " + variantToXboard(board()->variant()));
 	
+	setForceMode(true);
+
 	if (board()->isRandomVariant()
 	||  board()->fenString() != board()->defaultFenString())
 	{
+		if (board()->sideToMove() == Chess::Side::Black)
+		{
+			// Use a dummy move to force the engine to play black
+			write("b2b3");
+		}
 		if (m_ftSetboard)
 			write("setboard " + board()->fenString());
 		else
@@ -130,10 +137,12 @@ void XboardEngine::startGame()
 			qDebug("%s does not support the setboard command, using the edit command now", qPrintable(name()));
 			write("edit");
 			write("#"); // clear board on engine
-			for (const auto& s: board()->pieceList(Chess::Side::White))
+			const QStringList& whitePieces = board()->pieceList(Chess::Side::White);
+			for (const auto& s: whitePieces)
 				write(s); // set a piece
 			write("c");
-			for (const auto& s: board()->pieceList(Chess::Side::Black))
+			const QStringList& blackPieces = board()->pieceList(Chess::Side::Black);
+			for (const auto& s: blackPieces)
 				write(s); // set a piece
 			write("."); // finished
 		}
@@ -171,7 +180,6 @@ void XboardEngine::startGame()
 		write("hard");
 	else
 		write("easy");
-	setForceMode(true);
 	
 	// Tell the opponent's type and name to the engine
 	if (m_ftName)
@@ -472,8 +480,8 @@ void XboardEngine::setFeature(const QString& name, const QString& val)
 	else if (name == "variants")
 	{
 		clearVariants();
-		QStringList variants = val.split(',');
-		foreach (const QString& str, variants)
+		const auto variants = val.split(',');
+		for (const QString& str : variants)
 		{
 			QString variant = variantFromXboard(str.trimmed());
 			if (!variant.isEmpty())
@@ -494,8 +502,8 @@ void XboardEngine::setFeature(const QString& name, const QString& val)
 	}
 	else if (name == "egt")
 	{
-		QStringList list = val.split(',');
-		foreach (const QString& str, list)
+		const auto list = val.split(',');
+		for (const QString& str : list)
 		{
 			QString egtType = QString("egtpath %1").arg(str.trimmed());
 			addOption(new EngineTextOption(egtType, QString(), QString()));
@@ -583,7 +591,7 @@ void XboardEngine::parseLine(const QString& line)
 		
 		// Search depth
 		QString depth(ref.toString());
-		if (!(depth.end() - 1)->isDigit())
+		if (!(depth.cend() - 1)->isDigit())
 			depth.chop(1);
 		m_eval.setDepth(depth.toInt());
 
@@ -677,8 +685,6 @@ void XboardEngine::parseLine(const QString& line)
 		QRegExp rx("\\w+\\s*=\\s*(\"[^\"]*\"|\\d+)");
 		
 		int pos = 0;
-		QString feature;
-		QStringList list;
 		
 		while ((pos = rx.indexIn(args, pos)) != -1)
 		{

@@ -335,9 +335,12 @@ GameDatabaseDialog::~GameDatabaseDialog()
 void GameDatabaseDialog::databaseSelectionChanged(const QItemSelection& selected,
                                                   const QItemSelection& deselected)
 {
-	foreach (const QModelIndex& index, deselected.indexes())
+	const auto deselectedIndexes = deselected.indexes();
+	for (const QModelIndex& index : deselectedIndexes)
 		m_selectedDatabases.remove(index.row());
-	foreach (const QModelIndex& index, selected.indexes())
+
+	const auto selectedIndexes = selected.indexes();
+	for (const QModelIndex& index : selectedIndexes)
 		m_selectedDatabases[index.row()] = m_dbManager->databases().at(index.row());
 
 	if (m_selectedDatabases.isEmpty())
@@ -483,7 +486,7 @@ void GameDatabaseDialog::exportPgn(const QString& fileName)
 	{
 		QMessageBox::critical(this, tr("File Error"),
 				      tr("Error while saving file %1\n%2")
-				      .arg(fileName).arg(file->errorString()));
+				      .arg(fileName, file->errorString()));
 		delete file;
 		return;
 	}
@@ -513,7 +516,7 @@ void GameDatabaseDialog::createOpeningBook()
 	{
 		QMessageBox::critical(this, tr("File Error"),
 				      tr("Error while saving file %1\n%2")
-				      .arg(fileName).arg(file->errorString()));
+				      .arg(fileName, file->errorString()));
 		delete file;
 		return;
 	}

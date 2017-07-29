@@ -17,6 +17,7 @@
 
 #include "knockouttournament.h"
 #include <QStringList>
+#include <QtMath>
 #include "playerbuilder.h"
 #include "mersenne.h"
 
@@ -116,9 +117,7 @@ void KnockoutTournament::initializePairing()
 
 int KnockoutTournament::gamesPerCycle() const
 {
-	int x = 1;
-	while (x < playerCount())
-		x *= 2;
+	int x = qNextPowerOfTwo(playerCount() - 1);
 	int round = x / 2;
 	int total = round - (x - playerCount());
 	while (round >= 2)
@@ -152,7 +151,8 @@ void KnockoutTournament::addScore(int player, int score)
 QList<int> KnockoutTournament::lastRoundWinners() const
 {
 	QList<int> winners;
-	foreach (const TournamentPair* pair, m_rounds.last())
+	const auto last = m_rounds.last();
+	for (const TournamentPair* pair : last)
 		winners << pair->leader();
 
 	return winners;
@@ -204,7 +204,8 @@ TournamentPair* KnockoutTournament::nextPair(int gameNumber)
 {
 	Q_UNUSED(gameNumber);
 
-	foreach (TournamentPair* pair, m_rounds.last())
+	const auto last = m_rounds.last();
+	for (TournamentPair* pair : last)
 	{
 		if (needMoreGames(pair))
 			return pair;
@@ -222,6 +223,7 @@ TournamentPair* KnockoutTournament::nextPair(int gameNumber)
 	m_rounds << nextRound;
 	setCurrentRound(currentRound() + 1);
 
+	// TODO: use qAsConst() from Qt 5.7
 	foreach (TournamentPair* pair, nextRound)
 	{
 		if (pair->isValid())
@@ -236,7 +238,8 @@ QString KnockoutTournament::results() const
 {
 	QStringList lines;
 
-	foreach (const TournamentPair* pair, m_rounds.first())
+	const auto first = m_rounds.first();
+	for (const TournamentPair* pair : first)
 	{
 		int player1 = pair->firstPlayer();
 		int player2 = pair->secondPlayer();
@@ -255,7 +258,8 @@ QString KnockoutTournament::results() const
 	for (int round = 0; round < currentRound(); round++)
 	{
 		int x = 0;
-		foreach (const TournamentPair* pair, m_rounds.at(round))
+		const auto nthRound = m_rounds.at(round);
+		for (const TournamentPair* pair : nthRound)
 		{
 			QString winner;
 			if (needMoreGames(pair) || pair->gamesInProgress())
@@ -267,8 +271,7 @@ QString KnockoutTournament::results() const
 			int r = round + 1;
 			int lineNum = ((2 << (r - 1)) - 1) + (x * (2 << r));
 			QString text = QString("%1%2")
-				       .arg(QString(r * 2, '\t'))
-				       .arg(winner);
+				       .arg(QString(r * 2, '\t'), winner);
 			if (pair->scoreSum())
 			{
 				int score1 = pair->firstScore();

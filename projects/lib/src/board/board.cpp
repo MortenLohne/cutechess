@@ -303,12 +303,12 @@ Square Board::chessSquare(const QString& str) const
 	if (coordinateSystem() == NormalCoordinates)
 	{
 		file = str.at(0).toLatin1() - 'a';
-		rank = str.mid(1).toInt(&ok) - 1;
+		rank = str.midRef(1).toInt(&ok) - 1;
 	}
 	else
 	{
 		int tmp = str.length() - 1;
-		file = m_width - str.left(tmp).toInt(&ok);
+		file = m_width - str.leftRef(tmp).toInt(&ok);
 		rank = m_height - (str.at(tmp).toLatin1() - 'a') - 1;
 	}
 
@@ -479,7 +479,7 @@ QString Board::fenString(FenNotation notation) const
 	if (variantHasDrops())
 	{
 		QString str;
-		for (int i = Side::White; i <= Side::Black; i++)
+		for (i = Side::White; i <= Side::Black; i++)
 		{
 			Side side = Side::Type(i);
 			for (int j = m_reserve[i].size() - 1; j >= 1; j--)
@@ -561,7 +561,7 @@ bool Board::setFenString(const QString& fen)
 			int nempty;
 			if (i < (token->length() - 1) && token->at(i + 1).isDigit())
 			{
-				nempty = token->mid(i, 2).toInt();
+				nempty = token->midRef(i, 2).toInt();
 				i++;
 			}
 			else

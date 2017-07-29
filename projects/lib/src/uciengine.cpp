@@ -88,6 +88,8 @@ UciEngine::UciEngine(QObject* parent)
 	  m_sendOpponentsName(false),
 	  m_canPonder(false),
 	  m_ponderState(NotPondering),
+	  m_movesPondered(0),
+	  m_ponderHits(0),
 	  m_ignoreThinking(false),
 	  m_rePing(false)
 {
@@ -129,6 +131,9 @@ void UciEngine::startGame()
 	m_rePing = false;
 	m_ponderState = NotPondering;
 	m_ponderMove = Chess::Move();
+	m_ponderMoveSan.clear();
+	m_movesPondered = 0;
+	m_ponderHits = 0;
 	m_bmBuffer.clear();
 	m_moveStrings.clear();
 
@@ -147,8 +152,7 @@ void UciEngine::startGame()
 	{
 		QString opType = opponent()->isHuman() ? "human" : "computer";
 		QString value = QString("none none %1 %2")
-				.arg(opType)
-				.arg(opponent()->name());
+				.arg(opType, opponent()->name());
 		sendOption("UCI_Opponent", value);
 	}
 
@@ -167,10 +171,15 @@ void UciEngine::makeMove(const Chess::Move& move)
 {
 	if (!m_ponderMove.isNull())
 	{
+		m_movesPondered++;
 		if (move == m_ponderMove)
+		{
+			m_ponderHits++;
 			m_ponderState = PonderHit;
+		}
 
 		m_ponderMove = Chess::Move();
+		m_ponderMoveSan.clear();
 		if (m_ponderState != PonderHit)
 		{
 			m_moveStrings.truncate(m_moveStrings.lastIndexOf(' '));
@@ -284,6 +293,7 @@ void UciEngine::clearPonderState()
 {
 	m_ponderState = NotPondering;
 	m_ponderMove = Chess::Move();
+	m_ponderMoveSan.clear();
 }
 
 bool UciEngine::isPondering() const
@@ -419,6 +429,12 @@ void UciEngine::parseInfo(const QVarLengthArray<QStringRef>& tokens,
 			eval->setScore(score);
 		}
 		break;
+	case InfoTbHits:
+		eval->setTbHits(tokens[0].toString().toULongLong());
+		break;
+	case InfoHashFull:
+		eval->setHashUsage(tokens[0].toString().toInt());
+		break;
 	default:
 		break;
 	}
@@ -463,6 +479,11 @@ void UciEngine::parseInfo(const QStringRef& line)
 	}
 	if (eval.isEmpty())
 		return;
+
+	if (!m_ponderMove.isNull())
+		eval.setPonderMove(m_ponderMoveSan);
+	if (m_movesPondered)
+		eval.setPonderhitRate((m_ponderHits * 1000) / m_movesPondered);
 
 	// Only the primary PV can be considered the current eval
 	if (eval.pvNumber() <= 1)
@@ -584,6 +605,7 @@ void UciEngine::parseLine(const QString& line)
 			m_ignoreThinking = false;
 			if (!m_bmBuffer.isEmpty())
 			{
+				// TODO: use qAsConst() from Qt 5.7
 				foreach (const QString& line, m_bmBuffer)
 					write(line, Unbuffered);
 				m_bmBuffer.clear();
@@ -597,6 +619,7 @@ void UciEngine::parseLine(const QString& line)
 			qWarning("Premature bestmove while pondering from %s",
 				 qPrintable(name()));
 			m_ponderMove = Chess::Move();
+			m_ponderMoveSan.clear();
 			m_moveStrings.truncate(m_moveStrings.lastIndexOf(' '));
 			pong();
 			return;
@@ -743,6 +766,7 @@ void UciEngine::setPonderMove(const QString& moveString)
 	if (moveString == "(none)" || moveString == "0000")
 	{
 		m_ponderMove = Chess::Move();
+		m_ponderMoveSan.clear();
 		return;
 	}
 
@@ -751,6 +775,7 @@ void UciEngine::setPonderMove(const QString& moveString)
 	m_ponderMove = board->moveFromString(moveString);
 	if (m_ponderMove.isNull())
 	{
+		m_ponderMoveSan.clear();
 		qDebug("Illegal ponder move from %s: %s",
 		       qPrintable(name()),
 		       qPrintable(moveString));
@@ -762,6 +787,9 @@ void UciEngine::setPonderMove(const QString& moveString)
 		if (!board->result().isNone())
 			m_ponderMove = Chess::Move();
 		board->undoMove();
+
+		if (!m_ponderMove.isNull())
+			m_ponderMoveSan = board->moveString(m_ponderMove, Chess::Board::StandardAlgebraic);
 	}
 }
 
@@ -803,7 +831,7 @@ QString UciEngine::sanPv(const QVarLengthArray<QStringRef>& tokens)
 void UciEngine::sendOption(const QString& name, const QVariant& value)
 {
 	if (!value.isNull())
-		write(QString("setoption name %1 value %2").arg(name).arg(value.toString()));
+		write(QString("setoption name %1 value %2").arg(name, value.toString()));
 	else
 		write(QString("setoption name %1").arg(name));
 }
