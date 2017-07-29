@@ -96,7 +96,8 @@ inline Move::Move(int sourceSquare,
 		  int sjadamSquare)
 	: m_data(sourceSquare |
 		 (targetSquare << 10) |
-		 (promotion << 20))
+		 (promotion << 20)),
+  m_sjadamSquare(sjadamSquare)
 {
   if (sjadamSquare == 0) {
     m_sjadamSquare = sourceSquare;

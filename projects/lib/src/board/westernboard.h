@@ -185,6 +185,8 @@ class LIB_EXPORT WesternBoard : public Board
 		virtual bool isLegalPosition();
 		virtual int captureType(const Move& move) const;
 
+		int m_reversibleMoveCount;
+
 	private:
 		struct CastlingRights
 		{
@@ -227,7 +229,6 @@ class LIB_EXPORT WesternBoard : public Board
 		int m_kingSquare[2];
 		int m_enpassantSquare;
 		int m_enpassantTarget;
-		int m_reversibleMoveCount;
 		bool m_kingCanCapture;
 		bool m_pawnAmbiguous;
 		QVector<MoveData> m_history;

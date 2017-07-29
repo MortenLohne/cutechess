@@ -52,10 +52,11 @@ QDebug operator<<(QDebug dbg, const Board* board)
 
 
 Board::Board(Zobrist* zobrist)
-	: m_initialized(false),
+	: m_side(Side::White),
+	  m_initialized(false),
 	  m_width(0),
 	  m_height(0),
-	  m_side(Side::White),
+	  
 	  m_startingSide(Side::White),
 	  m_maxPieceSymbolLength(1),
 	  m_key(0),
@@ -254,10 +255,14 @@ int Board::squareIndex(const Square& square) const
 
 bool Board::isValidSquare(const Chess::Square& square) const
 {
-	if (!square.isValid()
-	||  square.file() >= m_width || square.rank() >= m_height)
-		return false;
-	return true;
+  if (!square.isValid()
+      ||  square.file() >= m_width || square.rank() >= m_height) {
+    qWarning("Found invalid square " + squareString(square).toLatin1() + "(%d, %d), board dimensions: (%d, %d), bools: %d, %d, %d",
+	     square.file(), square.rank(), m_width , m_height, !square.isValid(),
+	     square.file() >= m_width, square.rank() >= m_height);
+    return false;
+  }
+  return true;
 }
 
 QString Board::squareString(int index) const
@@ -388,17 +393,14 @@ Move Board::moveFromLanString(const QString& istr)
 
   Move Board::moveFromString(const QString& str)
 {
-  qDebug("Parsing regular move " + str.toLatin1());
 	Move move = moveFromSanString(str);
 	if (move.isNull())
 	{
 		move = moveFromLanString(str);
 		if (!isLegalMove(move)) {
-		  qDebug("Returning regular null move");
 			return Move();
 		}
 	}
-	qDebug("Returning regular move " + moveString(move, LongAlgebraic).toLatin1());
 	return move;
 }
 
@@ -683,10 +685,14 @@ void Board::undoMove()
 	Q_ASSERT(!m_side.isNull());
 
 	m_side = m_side.opposite();
-	vUndoMove(m_moveHistory.last().move);
 
-	m_key = m_moveHistory.last().key;
+	MoveData lastMove = m_moveHistory.last();
+	m_key = lastMove.key;
 	m_moveHistory.pop_back();
+	
+	vUndoMove(lastMove.move);
+
+	
 }
 
 void Board::generateMoves(QVarLengthArray<Move>& moves, int pieceType) const
@@ -776,8 +782,12 @@ bool Board::moveExists(const Move& move) const
 	else
 	{
 		Piece piece = m_squares[source];
-		if (piece.side() != m_side)
+		if (piece.side() != m_side) {
+		  qWarning("Tried to move piece of wrong color with move at "
+			   //lanMoveString(move).toLatin1() +
+			    + fenString().toLatin1());
 			return false;
+		}
 		generateMovesForPiece(moves, piece.type(), source);
 	}
 
@@ -786,7 +796,8 @@ bool Board::moveExists(const Move& move) const
 		if (moves[i] == move)
 			return true;
 	}
-	return false;
+	// TODO: Reverse
+	return true;
 }
 
 int Board::captureType(const Move& move) const

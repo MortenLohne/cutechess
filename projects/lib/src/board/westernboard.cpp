@@ -25,11 +25,11 @@ namespace Chess {
 
 WesternBoard::WesternBoard(WesternZobrist* zobrist)
 	: Board(zobrist),
+	  m_reversibleMoveCount(0),
 	  m_arwidth(0),
 	  m_sign(1),
 	  m_enpassantSquare(0),
 	  m_enpassantTarget(0),
-	  m_reversibleMoveCount(0),
 	  m_kingCanCapture(true),
 	  m_pawnAmbiguous(false),
 	  m_zobrist(zobrist)
@@ -137,6 +137,7 @@ WesternBoard::CastlingSide WesternBoard::castlingSide(const Move& move) const
 
 QString WesternBoard::lanMoveString(const Move& move)
 {
+  qInfo("Generating western move string");
 	CastlingSide cside = castlingSide(move);
 	if (cside != NoCastlingSide && !isRandomVariant())
 	{

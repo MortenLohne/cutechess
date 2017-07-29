@@ -18,6 +18,7 @@
 #ifndef SJADAMBOARD_H
 #define SJADAMBOARD_H
 
+#include <memory>
 #include "westernboard.h"
 
 namespace Chess {
@@ -31,50 +32,40 @@ class LIB_EXPORT SjadamBoard : public WesternBoard
 	public:
 		/*! Creates a new SjadamBoard object. */
 		SjadamBoard();
+		SjadamBoard(const SjadamBoard*);
 
 		// Inherited from WesternBoard
-		virtual Board* copy() const;
-		virtual Result result();
-		virtual QString variant() const;
-		virtual bool variantHasDrops() const;
-		virtual QString defaultFenString() const;
-		//virtual bool vIsLegalMove(const Move& move);
-		/*!
-		 * Converts a Move into a string.
-		 *
-		 * \note The board must be in a position where \a move can be made.
-		 * \sa moveFromString()
-		 */
-		QString moveString(const Move& move, MoveNotation notation);
-		/*!
-		 * Converts a move string into a Move.
-		 *
-		 * \note Returns a null move if \a move is illegal.
-		 * \note Notation is automatically detected, and can be anything
-		 * that's specified in MoveNotation.
-		 * \sa moveString()
-		 */
-		Move moveFromString(const QString& str);
+		virtual Board* copy() const override;
+		virtual Result result() override;
+		virtual QString variant() const override;
+		virtual bool variantHasDrops() const override;
+		virtual QString defaultFenString() const override;
+		virtual bool vIsLegalMove(const Move& move) override;
+		
+		static Move toNormalMove(const Move& move);
+		
 
 	protected:
 
 		// Inherited from WesternBoard
-		/*
-		virtual bool kingsCountAssertion(int whiteKings,
-						 int blackKings) const;
-		virtual bool inCheck(Side side, int square = 0) const;
-		*/
-		virtual QString sanMoveString(const Move& move);
-		virtual Move moveFromSanString(const QString& str);
+		virtual QString lanMoveString(const Move& move) override;
+		virtual QString sanMoveString(const Move& move) override;
+		
+		virtual Move moveFromLanString(const QString& str) override;
+		virtual Move moveFromSanString(const QString& str) override;
+		
 		virtual void vMakeMove(const Move& move,
-				       BoardTransition* transition);
-		virtual void vUndoMove(const Move& move);
+				       BoardTransition* transition) override;
+		virtual void vUndoMove(const Move& move) override;
 		virtual void generateMovesForPiece(QVarLengthArray<Move>& moves,
 						   int pieceType,
-						   int square) const;
+						   int square) const override;
 
 	private:
-
+		// std::unique_ptr<SjadamBoard> m_oldBoard;
+		QVector<Move> m_moveHistory;
+		int m_halfMoveClock = 0;
+		int m_moveClock = 0;
 };
 
 } // namespace Chess

@@ -17,7 +17,7 @@
 
 using namespace std;
 
-#include <iostream>
+#include <utility>
 #include "move.h"
 #include "sjadamboard.h"
 #include "westernzobrist.h"
@@ -35,12 +35,11 @@ namespace Chess {
   SjadamBoard::SjadamBoard()
     : WesternBoard(new WesternZobrist())
   {
-
   }
 
-  Board* SjadamBoard::copy() const
-  {
-    return new SjadamBoard(*this);
+  Board* SjadamBoard::copy() const {
+    qWarning("Tried to copy sjadam board");
+    return 0;
   }
   
   Result SjadamBoard::result()
@@ -50,6 +49,7 @@ namespace Chess {
 	int numKings = 0;
 	int numPieces = 0;
 	Side kingColor;
+	
 	for (int file = 0; file < height(); file++) {
 	  for (int rank = 0; rank < width(); rank++) {
 	    Square square = Chess::Square(file, rank);
@@ -97,7 +97,7 @@ namespace Chess {
     return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   }
 
-  QString SjadamBoard::sanMoveString(const Move& move)
+  QString SjadamBoard::lanMoveString(const Move& move) 
   {
     QString str = QString();
     if (move.sourceSquare() == move.sjadamSquare()) {
@@ -113,86 +113,118 @@ namespace Chess {
     else {
       str.append(Board::squareString(move.targetSquare()));
     }
+    Q_ASSERT(str.length() >= 5);
     return str;
   }
 
-  QString SjadamBoard::moveString(const Move& move, MoveNotation notation) {
-    return sanMoveString(move);
+  QString SjadamBoard::sanMoveString(const Move& move) {
+    return lanMoveString(move);
   }
   
-  Move SjadamBoard::moveFromSanString(const QString& str)
+  Move SjadamBoard::moveFromLanString(const QString& str)
   {
-    qDebug("Parsing sjadam move string " + str.toLatin1());
     if (str[0] == '-') {
       if (str.length() == 6) {
-	return WesternBoard::moveFromSanString(str.right(5));
+	return WesternBoard::moveFromLanString(str.right(5));
       }
       else {
-	return WesternBoard::moveFromSanString(str.right(4));
+	return WesternBoard::moveFromLanString(str.right(4));
       }
     }
-    else if (str[5] == '-') {
+    else if (str[4] == '-') {
+      //qInfo("Parsing pure sjadam move");
       int from = Board::squareIndex(str.midRef(0, 2).toString());
       int to = Board::squareIndex(str.midRef(2, 2).toString());
       return Move(from, to, 0, to);
     }
-    else {
+    else if (str.length() == 6) {
       // TODO: Parse promotions correctly
+      //qInfo("Parsing full sjadam move");
       int fromSquare = Board::squareIndex(str.midRef(0, 2).toString());
       int sjadamSquare = Board::squareIndex(str.midRef(2, 2).toString());
       int toSquare = Board::squareIndex(str.midRef(4, 2).toString());
-      return Move(fromSquare, sjadamSquare, 0, toSquare);
+      if ((fromSquare & sjadamSquare & toSquare) == 0) {
+	qWarning("Got null squares: %d, %d, %d, " + str.midRef(0, 2).toString().toLatin1(),
+		 fromSquare, sjadamSquare, toSquare);
+      }
+      Move move = Move(fromSquare, toSquare, 0, sjadamSquare);
+      if (move.isNull()) {
+	qWarning("Parsed null move " + str.toLatin1() + " of length %d", str.length());
+      }
+      return move;
+    }
+    else {
+      qWarning("Failed to parse " + str.toLatin1());
+      return Move();
     }
   }
-
-  Move SjadamBoard::moveFromString(const QString& str) {
-    return moveFromSanString(str);
+  Move SjadamBoard::moveFromSanString(const QString& str) {
+    return moveFromLanString(str);
   }
+
 
   void SjadamBoard::vMakeMove(const Move& move, BoardTransition* transition)
   {
-    qDebug("Doing sjadam move " + sanMoveString(move).toLatin1());
-    auto fromSquare = move.sourceSquare();
-    auto sjadamSquare = move.sjadamSquare();
-    auto toSquare = move.targetSquare();
+    //qInfo("Making move " + lanMoveString(move).toLatin1() + " on " + fenString().toLatin1());
+    m_moveHistory.push_back(move);
+    int fromSquare = move.sourceSquare();
+    int sjadamSquare = move.sjadamSquare();
+    int toSquare = move.targetSquare();
     // TODO: Does not correctly revoke castling or en passant rights
-    
-    if (fromSquare != sjadamSquare) {
+    // First do sjadam jump, if any
+    if (sjadamSquare != fromSquare) {
+      //qInfo("Doing sjadam jump from " + squareString(fromSquare).toLatin1() + ", id=%d", fromSquare);
       setSquare(sjadamSquare, pieceAt(fromSquare));
       setSquare(fromSquare, Piece());
     }
-    // TODO: Does not correctly increment half move counters 
+    // TODO: Does not correctly increment half move counters
+    // Do regular chess move, if any
+    Move chessMove = SjadamBoard::toNormalMove(move);
     if (sjadamSquare != toSquare) {
-      return WesternBoard::vMakeMove(move, transition);
+      //qInfo("Doing regular chess move part");
+      WesternBoard::vMakeMove(chessMove, transition);
     }
-    // TODO: Does not promote pieces on back rank
-    qDebug("Finished doing sjadam move");
+    // Changing sides is taken care of in board::makeMove()
+    if ((chessSquare(toSquare).rank() == 0 && m_side == Side::White)
+	  || (chessSquare(toSquare).rank() == 7 && m_side == Side::Black)) {
+	Piece piece = pieceAt(toSquare);
+	Piece queen = Piece(piece.side(), Queen);
+	setSquare(toSquare, queen);
+      }
+    qInfo("Finished making move " + lanMoveString(move).toLatin1() + " on " + fenString().toLatin1());
+  }
+
+  Move SjadamBoard::toNormalMove(const Move& move) {
+    return Move(move.sjadamSquare(), move.targetSquare(), move.promotion(), move.sjadamSquare());
   }
 
   void SjadamBoard::vUndoMove(const Move& move)
   {
-    // TODO: Does not correctly restore castling rights
-    qDebug("Undoing sjadam move " + sanMoveString(move).toLatin1());
-    auto fromSquare = move.sourceSquare();
-    auto sjadamSquare = move.sjadamSquare();
-    auto toSquare = move.targetSquare();
-
-    if (fromSquare != sjadamSquare) {
-      setSquare(fromSquare, pieceAt(sjadamSquare));
-      setSquare(sjadamSquare, Piece());
+    auto newBoard = SjadamBoard();
+    newBoard.initialize();
+    newBoard.setFenString(newBoard.defaultFenString());
+    if (m_moveHistory.isEmpty() || move != m_moveHistory.last()) {
+      qWarning("Undoing move that wasn't the last move");
     }
-    // Does not correctly increment half move counters 
-    if (sjadamSquare != toSquare) {
-      WesternBoard::vUndoMove(move);
+    if (!m_moveHistory.isEmpty()) {
+      m_moveHistory.removeLast();
     }
-    // TODO: May not un-promote pieces on back rank
-    qDebug("FInished undoing sjadam move");
+    
+    for (auto move : m_moveHistory) {
+      newBoard.makeMove(move);
+    }
+    *this = newBoard;
+    //qInfo("New board dimensions: %d, %d", width(), height());
+    qInfo("Finished undoing move " + lanMoveString(move).toLatin1());
   }
 
   // TODO: Implement correctly
-  bool vIsLegalMove(const Move& move) {
+  bool SjadamBoard::vIsLegalMove(const Move& move) {
+    qInfo("Checking if " + lanMoveString(move).toLatin1() + " is legal.");
     return true;
   }
+
+  
   
   // TODO: Implement correctly
   void SjadamBoard::generateMovesForPiece(QVarLengthArray<Move>& moves,

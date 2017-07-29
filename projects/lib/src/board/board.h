@@ -363,7 +363,7 @@ class LIB_EXPORT Board
 		 * Converts a Move object into a string in Long
 		 * Algebraic Notation (LAN)
 		 */
-		virtual QString lanMoveString(const Move& move);
+		virtual QString lanMoveString(const Move& move) = 0;
 		/*!
 		 * Converts a Move object into a string in Standard
 		 * Algebraic Notation (SAN).
@@ -505,6 +505,8 @@ class LIB_EXPORT Board
 		/*! Removes a piece of type \a piece from the reserve. */
 		void removeFromReserve(const Piece& piece);
 
+		Side m_side;
+
 	private:
 		struct PieceData
 		{
@@ -523,7 +525,6 @@ class LIB_EXPORT Board
 		bool m_initialized;
 		int m_width;
 		int m_height;
-		Side m_side;
 		Side m_startingSide;
 		QString m_startingFen;
 		int m_maxPieceSymbolLength;

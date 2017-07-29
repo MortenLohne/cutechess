@@ -193,6 +193,7 @@ void UciEngine::makeMove(const Chess::Move& move)
 	{
 		m_ponderState = NotPondering;
 		m_moveStrings += " " + board()->moveString(move, Chess::Board::LongAlgebraic);
+		qInfo("Move strings: " + m_moveStrings.toLatin1() + ", variation: " + board()->variant().toLatin1() + ", move done: " + board()->moveString(move, Chess::Board::LongAlgebraic).toLatin1());
 		if (m_ignoreThinking)
 			m_bmBuffer << positionString() << "isready";
 		else
@@ -778,14 +779,12 @@ QString UciEngine::sanPv(const QVarLengthArray<QStringRef>& tokens)
 
 	for (const QStringRef token : tokens)
 	{
-	  qDebug("uciengine: Parsing move " + token.toString().toLatin1() + " from engine.");
 	  auto move = (*board).moveFromString(token.toString());
 		if (move.isNull())
 		{
 			qWarning("Illegal PV move %s from %s",
 				 qPrintable(token.toString()),
 				 qPrintable(name()));
-			std::cout << "Stuff";
 			break;
 		}
 		if (!pv.isEmpty())
