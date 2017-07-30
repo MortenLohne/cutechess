@@ -60,10 +60,11 @@ class LIB_EXPORT SjadamBoard : public WesternBoard
 		virtual void generateMovesForPiece(QVarLengthArray<Move>& moves,
 						   int pieceType,
 						   int square) const override;
+		virtual bool vSetFenString(const QStringList& fen) override;
 
 	private:
-		// std::unique_ptr<SjadamBoard> m_oldBoard;
 		QVector<Move> m_moveHistory;
+		QString m_startFen;
 		int m_halfMoveClock = 0;
 		int m_moveClock = 0;
 };

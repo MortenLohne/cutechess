@@ -202,7 +202,7 @@ void UciEngine::makeMove(const Chess::Move& move)
 	{
 		m_ponderState = NotPondering;
 		m_moveStrings += " " + board()->moveString(move, Chess::Board::LongAlgebraic);
-		qInfo("Move strings: " + m_moveStrings.toLatin1() + ", variation: " + board()->variant().toLatin1() + ", move done: " + board()->moveString(move, Chess::Board::LongAlgebraic).toLatin1());
+		//qInfo("Move strings: " + m_moveStrings.toLatin1() + ", variation: " + board()->variant().toLatin1() + ", move done: " + board()->moveString(move, Chess::Board::LongAlgebraic).toLatin1());
 		if (m_ignoreThinking)
 			m_bmBuffer << positionString() << "isready";
 		else

@@ -132,25 +132,15 @@ namespace Chess {
       }
     }
     else if (str[4] == '-') {
-      //qInfo("Parsing pure sjadam move");
       int from = Board::squareIndex(str.midRef(0, 2).toString());
       int to = Board::squareIndex(str.midRef(2, 2).toString());
       return Move(from, to, 0, to);
     }
     else if (str.length() == 6) {
-      // TODO: Parse promotions correctly
-      //qInfo("Parsing full sjadam move");
       int fromSquare = Board::squareIndex(str.midRef(0, 2).toString());
       int sjadamSquare = Board::squareIndex(str.midRef(2, 2).toString());
       int toSquare = Board::squareIndex(str.midRef(4, 2).toString());
-      if ((fromSquare & sjadamSquare & toSquare) == 0) {
-	qWarning("Got null squares: %d, %d, %d, " + str.midRef(0, 2).toString().toLatin1(),
-		 fromSquare, sjadamSquare, toSquare);
-      }
       Move move = Move(fromSquare, toSquare, 0, sjadamSquare);
-      if (move.isNull()) {
-	qWarning("Parsed null move " + str.toLatin1() + " of length %d", str.length());
-      }
       return move;
     }
     else {
@@ -185,24 +175,29 @@ namespace Chess {
       WesternBoard::vMakeMove(chessMove, transition);
     }
     // Changing sides is taken care of in board::makeMove()
-    if ((chessSquare(toSquare).rank() == 0 && m_side == Side::White)
-	  || (chessSquare(toSquare).rank() == 7 && m_side == Side::Black)) {
-	Piece piece = pieceAt(toSquare);
-	Piece queen = Piece(piece.side(), Queen);
-	setSquare(toSquare, queen);
-      }
-    qInfo("Finished making move " + lanMoveString(move).toLatin1() + " on " + fenString().toLatin1());
+    if (pieceAt(toSquare).type() != King &&
+	((chessSquare(toSquare).rank() == 7 && m_side == Side::White)
+	 || (chessSquare(toSquare).rank() == 0 && m_side == Side::Black))) {
+      
+      Piece piece = pieceAt(toSquare);
+      Piece queen = Piece(piece.side(), Queen);
+      setSquare(toSquare, queen);
+      //qInfo("Promoting piece with move %s at board %s", qPrintable(lanMoveString(move)), qPrintable(fenString()));
+    }
+    //qInfo("Finished making move " + lanMoveString(move).toLatin1() + " on " + fenString().toLatin1());
   }
 
   Move SjadamBoard::toNormalMove(const Move& move) {
     return Move(move.sjadamSquare(), move.targetSquare(), move.promotion(), move.sjadamSquare());
   }
 
+  
+  
   void SjadamBoard::vUndoMove(const Move& move)
   {
     auto newBoard = SjadamBoard();
     newBoard.initialize();
-    newBoard.setFenString(newBoard.defaultFenString());
+    newBoard.setFenString(m_startFen);
     if (m_moveHistory.isEmpty() || move != m_moveHistory.last()) {
       qWarning("Undoing move that wasn't the last move");
     }
@@ -215,7 +210,7 @@ namespace Chess {
     }
     *this = newBoard;
     //qInfo("New board dimensions: %d, %d", width(), height());
-    qInfo("Finished undoing move " + lanMoveString(move).toLatin1());
+    //qInfo("Finished undoing move " + lanMoveString(move).toLatin1());
   }
 
   // TODO: Implement correctly
@@ -224,7 +219,10 @@ namespace Chess {
     return true;
   }
 
-  
+  bool SjadamBoard::vSetFenString(const QStringList& fen) {
+    m_startFen = fenString();
+    m_moveHistory.clear();
+  }
   
   // TODO: Implement correctly
   void SjadamBoard::generateMovesForPiece(QVarLengthArray<Move>& moves,

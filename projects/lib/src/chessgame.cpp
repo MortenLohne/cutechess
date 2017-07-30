@@ -277,7 +277,9 @@ void ChessGame::onMoveMade(const Chess::Move& move)
 	Q_ASSERT(m_board->isLegalMove(move));
 	if (sender != playerToMove())
 	{
-		qDebug("%s tried to make a move on the opponent's turn", qPrintable(sender->name()));
+		qDebug("%s tried to make a move on the opponent's turn on board %s",
+		       qPrintable(sender->name()),
+		       qPrintable(m_board->fenString()));
 		return;
 	}
 
