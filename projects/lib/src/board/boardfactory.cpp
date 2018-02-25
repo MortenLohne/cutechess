@@ -72,12 +72,9 @@ REGISTER_BOARD(CircularGryphonBoard, "circulargryphon")
 REGISTER_BOARD(CoRegalBoard, "coregal")
 REGISTER_BOARD(CourierBoard, "courier")
 REGISTER_BOARD(CrazyhouseBoard, "crazyhouse")
-<<<<<<< HEAD
 REGISTER_BOARD(SjadamBoard, "sjadam")
-=======
 REGISTER_BOARD(DisplacedGridBoard, "displacedgrid")
 REGISTER_BOARD(EmbassyBoard, "embassy")
->>>>>>> ade6636f090c1d41e54aac8a1f741458388f8153
 REGISTER_BOARD(ExtinctionBoard, "extinction")
 REGISTER_BOARD(KingletBoard, "kinglet")
 REGISTER_BOARD(FrcBoard, "fischerandom")
