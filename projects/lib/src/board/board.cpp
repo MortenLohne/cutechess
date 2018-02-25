@@ -255,14 +255,10 @@ int Board::squareIndex(const Square& square) const
 
 bool Board::isValidSquare(const Chess::Square& square) const
 {
-  if (!square.isValid()
-      ||  square.file() >= m_width || square.rank() >= m_height) {
-    qWarning("Found invalid square " + squareString(square).toLatin1() + "(%d, %d), board dimensions: (%d, %d), bools: %d, %d, %d",
-	     square.file(), square.rank(), m_width , m_height, !square.isValid(),
-	     square.file() >= m_width, square.rank() >= m_height);
-    return false;
-  }
-  return true;
+	if (!square.isValid()
+	||  square.file() >= m_width || square.rank() >= m_height)
+		return false;
+	return true;
 }
 
 QString Board::squareString(int index) const
@@ -391,15 +387,14 @@ Move Board::moveFromLanString(const QString& istr)
 	return Move(source, target, promotion.type());
 }
 
-  Move Board::moveFromString(const QString& str)
+Move Board::moveFromString(const QString& str)
 {
 	Move move = moveFromSanString(str);
 	if (move.isNull())
 	{
 		move = moveFromLanString(str);
-		if (!isLegalMove(move)) {
+		if (!isLegalMove(move))
 			return Move();
-		}
 	}
 	return move;
 }

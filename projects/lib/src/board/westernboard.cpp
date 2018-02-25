@@ -137,7 +137,6 @@ WesternBoard::CastlingSide WesternBoard::castlingSide(const Move& move) const
 
 QString WesternBoard::lanMoveString(const Move& move)
 {
-  qInfo("Generating western move string");
 	CastlingSide cside = castlingSide(move);
 	if (cside != NoCastlingSide && !isRandomVariant())
 	{
