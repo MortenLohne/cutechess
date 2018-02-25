@@ -19,6 +19,7 @@
 #include <QStringList>
 #include <QFile>
 #include <QMetaObject>
+#include <QDateTime>
 #include "board/boardfactory.h"
 #include "econode.h"
 #include "pgnstream.h"
@@ -98,16 +99,19 @@ const QVector<PgnGame::MoveData>& PgnGame::moves() const
 	return m_moves;
 }
 
-void PgnGame::addMove(const MoveData& data)
+void PgnGame::addMove(const MoveData& data, bool addEco)
 {
 	m_moves.append(data);
 
-	m_eco = (m_eco && isStandard()) ? m_eco->child(data.moveString) : nullptr;
-	if (m_eco && m_eco->isLeaf())
-	{
-		setTag("ECO", m_eco->ecoCode());
-		setTag("Opening", m_eco->opening());
-		setTag("Variation", m_eco->variation());
+	if (addEco) {
+		m_eco = (m_eco && isStandard()) ? m_eco->child(data.moveString)
+						: nullptr;
+		if (m_eco && m_eco->isLeaf())
+		{
+			setTag("ECO", m_eco->ecoCode());
+			setTag("Opening", m_eco->opening());
+			setTag("Variation", m_eco->variation());
+		}
 	}
 }
 
@@ -141,7 +145,7 @@ Chess::Board* PgnGame::createBoard() const
 	return board;
 }
 
-bool PgnGame::parseMove(PgnStream& in)
+bool PgnGame::parseMove(PgnStream& in, bool addEco)
 {
 	if (m_tags.isEmpty())
 	{
@@ -197,13 +201,13 @@ bool PgnGame::parseMove(PgnStream& in)
 
 	MoveData md = { board->key(), board->genericMove(move),
 			str, QString() };
-	addMove(md);
+	addMove(md, addEco);
 
 	board->makeMove(move);
 	return true;
 }
 
-bool PgnGame::read(PgnStream& in, int maxMoves)
+bool PgnGame::read(PgnStream& in, int maxMoves, bool addEco)
 {
 	clear();
 	if (!in.nextGame())
@@ -219,7 +223,7 @@ bool PgnGame::read(PgnStream& in, int maxMoves)
 			setTag(in.tagName(), in.tagValue());
 			break;
 		case PgnStream::PgnMove:
-			stop = !parseMove(in) || m_moves.size() >= maxMoves;
+			stop = !parseMove(in, addEco) || m_moves.size() >= maxMoves;
 			break;
 		case PgnStream::PgnComment:
 			if (!m_moves.isEmpty())
@@ -279,6 +283,12 @@ bool PgnGame::write(QTextStream& out, PgnMode mode) const
 		writeTag(out, "SetUp", m_tags["SetUp"]);
 	}
 
+	if (mode == Minimal && m_tags.contains("Variant")
+	&&  variant() != "standard")
+	{
+		writeTag(out, "Variant", m_tags["Variant"]);
+	}
+
 	QString str;
 	int lineLength = 0;
 	int movenum = 0;
@@ -315,7 +325,9 @@ bool PgnGame::write(QTextStream& out, PgnMode mode) const
 
 		side = !side;
 	}
+
 	str = m_tags.value("Result");
+
 	if (lineLength + str.size() >= 80)
 		out << "\n" << str << "\n\n";
 	else
@@ -385,7 +397,7 @@ QString PgnGame::variant() const
 {
 	if (m_tags.contains("Variant"))
 	{
-		QString variant(m_tags.value("Variant"));
+		QString variant(m_tags.value("Variant").toLower());
 		if ("chess" != variant && "normal" != variant)
 			return variant;
 	}
@@ -515,10 +527,26 @@ void PgnGame::setResultDescription(const QString& description)
 	QString& comment = m_moves.last().comment;
 	if (!comment.isEmpty())
 		comment += ", ";
+
 	comment += description;
 }
 
 void PgnGame::setTagReceiver(QObject* receiver)
 {
 	m_tagReceiver = receiver;
+}
+
+QString PgnGame::timeStamp(const QDateTime& dateTime)
+{
+	return dateTime.toString("yyyy-MM-ddThh:mm:ss.zzz t");
+}
+
+void PgnGame::setGameStartTime(const QDateTime& dateTime)
+{
+	setTag("GameStartTime", timeStamp(dateTime));
+}
+
+void PgnGame::setGameEndTime(const QDateTime& dateTime)
+{
+	setTag("GameEndTime", timeStamp(dateTime));
 }

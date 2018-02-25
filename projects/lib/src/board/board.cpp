@@ -82,6 +82,11 @@ bool Board::variantHasDrops() const
 	return false;
 }
 
+bool Board::variantHasOptionalPromotions() const
+{
+	return false;
+}
+
 QList<Piece> Board::reservePieceTypes() const
 {
 	return QList<Piece>();
@@ -738,6 +743,8 @@ void Board::generateHoppingMoves(int sourceSquare,
 	for (int i = 0; i < offsets.size(); i++)
 	{
 		int targetSquare = sourceSquare + offsets[i];
+		if (!isValidSquare(chessSquare(targetSquare)))
+			continue;
 		Piece capture = pieceAt(targetSquare);
 		if (capture.isEmpty() || capture.side() == opSide)
 			moves.append(Move(sourceSquare, targetSquare));

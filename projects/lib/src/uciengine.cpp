@@ -126,6 +126,7 @@ void UciEngine::sendPosition()
 void UciEngine::startGame()
 {
 	Q_ASSERT(supportsVariant(board()->variant()));
+	const QList<QString> directPvList = {"giveaway", "suicide", "antichess"};
 
 	m_ignoreThinking = false;
 	m_rePing = false;
@@ -136,6 +137,7 @@ void UciEngine::startGame()
 	m_ponderHits = 0;
 	m_bmBuffer.clear();
 	m_moveStrings.clear();
+	m_useDirectPv = directPvList.contains(board()->variant());
 
 	if (board()->isRandomVariant())
 		m_startFen = board()->fenString(Chess::Board::ShredderFen);
@@ -172,28 +174,32 @@ void UciEngine::makeMove(const Chess::Move& move)
 	if (!m_ponderMove.isNull())
 	{
 		m_movesPondered++;
-		if (move == m_ponderMove)
-		{
+		bool gotPonderHit = (move == m_ponderMove);
+		if (gotPonderHit)
 			m_ponderHits++;
-			m_ponderState = PonderHit;
-		}
 
-		m_ponderMove = Chess::Move();
-		m_ponderMoveSan.clear();
-		if (m_ponderState != PonderHit)
+		if (pondering())
 		{
-			m_moveStrings.truncate(m_moveStrings.lastIndexOf(' '));
-			if (isReady())
+			if (gotPonderHit)
+				m_ponderState = PonderHit;
+
+			m_ponderMove = Chess::Move();
+			m_ponderMoveSan.clear();
+			if (m_ponderState != PonderHit)
 			{
-				m_ignoreThinking = true;
-				if (stopThinking())
-					ping(false);
-			}
-			else
-			{
-				// Cancel sending the "go ponder" message
-				clearWriteBuffer();
-				m_rePing = true;
+				m_moveStrings.truncate(m_moveStrings.lastIndexOf(' '));
+				if (isReady())
+				{
+					m_ignoreThinking = true;
+					if (stopThinking())
+						ping(false);
+				}
+				else
+				{
+					// Cancel sending the "go ponder" message
+					clearWriteBuffer();
+					m_rePing = true;
+				}
 			}
 		}
 	}
@@ -245,7 +251,7 @@ void UciEngine::startThinking()
 		qFatal("Player %s doesn't have a side", qPrintable(name()));
 	
 	QString command = "go";
-	if (!m_ponderMove.isNull())
+	if (pondering() && !m_ponderMove.isNull())
 	{
 		command += " ponder";
 		m_ponderState = Pondering;
@@ -280,7 +286,7 @@ void UciEngine::startThinking()
 
 void UciEngine::startPondering()
 {
-	if (m_ponderMove.isNull())
+	if (!pondering() || m_ponderMove.isNull())
 		return;
 
 	m_moveStrings += " " + board()->moveString(m_ponderMove, Chess::Board::LongAlgebraic);
@@ -399,7 +405,7 @@ void UciEngine::parseInfo(const QVarLengthArray<QStringRef>& tokens,
 		eval->setPvNumber(tokens[0].toString().toInt());
 		break;
 	case InfoPv:
-		eval->setPv(sanPv(tokens));
+		eval->setPv(m_useDirectPv ?  directPv(tokens) : sanPv(tokens));
 		break;
 	case InfoScore:
 		{
@@ -407,25 +413,22 @@ void UciEngine::parseInfo(const QVarLengthArray<QStringRef>& tokens,
 			for (int i = 1; i < tokens.size(); i++)
 			{
 				if (tokens[i - 1] == "cp")
-				{
 					score = tokens[i].toString().toInt();
-					if (whiteEvalPov()
-					&&  side() == Chess::Side::Black)
-						score = -score;
-				}
 				else if (tokens[i - 1] == "mate")
 				{
 					score = tokens[i].toString().toInt();
 					if (score > 0)
-						score = 30001 - score * 2;
+						score = 99000 + 1 - score * 2;
 					else if (score < 0)
-						score = -30000 - score * 2;
+						score = -99000 - score * 2;
 				}
 				else if (tokens[i - 1] == "lowerbound"
 				     ||  tokens[i - 1] == "upperbound")
 					return;
 				i++;
 			}
+			if (whiteEvalPov() && side() == Chess::Side::Black)
+				score = -score;
 			eval->setScore(score);
 		}
 		break;
@@ -606,8 +609,9 @@ void UciEngine::parseLine(const QString& line)
 			if (!m_bmBuffer.isEmpty())
 			{
 				// TODO: use qAsConst() from Qt 5.7
-				foreach (const QString& line, m_bmBuffer)
-					write(line, Unbuffered);
+				const auto buf = m_bmBuffer;
+				for (const auto& l : buf)
+					write(l, Unbuffered);
 				m_bmBuffer.clear();
 			}
 			else
@@ -644,8 +648,7 @@ void UciEngine::parseLine(const QString& line)
 			return;
 		}
 
-		if (m_canPonder && pondering()
-		&&  (token = nextToken(token)) == "ponder")
+		if (m_canPonder && (token = nextToken(token)) == "ponder")
 		{
 			board()->makeMove(move);
 			setPonderMove(nextToken(token).toString());
@@ -793,13 +796,24 @@ void UciEngine::setPonderMove(const QString& moveString)
 	}
 }
 
+QString UciEngine::directPv(const QVarLengthArray<QStringRef>& tokens)
+{
+	QString pv;
+	for( auto token : tokens)
+	{
+		pv += " ";
+		pv += token.toString();
+	}
+	return pv;
+}
+
 QString UciEngine::sanPv(const QVarLengthArray<QStringRef>& tokens)
 {
 	Chess::Board* board = this->board();
 	QString pv;
 	int movesMade = 0;
 
-	if (!m_ponderMove.isNull())
+	if (pondering() && !m_ponderMove.isNull())
 	{
 		board->makeMove(m_ponderMove);
 		movesMade++;

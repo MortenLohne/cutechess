@@ -31,36 +31,9 @@ QString evalString(const MoveEvaluation& eval)
 	if (eval.isEmpty())
 		return QString();
 
-	QString str;
+	QString str = eval.scoreText();
 	if (eval.depth() > 0)
-	{
-		int score = eval.score();
-		int absScore = qAbs(score);
-		if (score > 0)
-			str += "+";
-
-		// Detect mate-in-n scores
-
-		// convert new CECP mate scores to old ones if needed
-		if (absScore > 99900 && absScore < 100100)
-		{
-			absScore = 200000 - 2 * absScore + 30000;
-			if (score >= absScore)
-				absScore++;
-		}
-
-		if (absScore > 9900
-		&&  (absScore = 1000 - (absScore % 1000)) < 100)
-		{
-			if (score < 0)
-				str += "-";
-			str += "M" + QString::number(absScore);
-		}
-		else
-			str += QString::number(double(score) / 100.0, 'f', 2);
-
 		str += "/" + QString::number(eval.depth()) + " ";
-	}
 
 	int t = eval.time();
 	if (t == 0)
@@ -198,12 +171,17 @@ void ChessGame::stop(bool emitMoveChanged)
 		return;
 	}
 	
+	QDateTime gameEndTime = QDateTime::currentDateTime();
+
 	initializePgn();
 	m_gameInProgress = false;
 	const QVector<PgnGame::MoveData>& moves(m_pgn->moves());
 	int plies = moves.size();
 
 	m_pgn->setTag("PlyCount", QString::number(plies));
+
+	m_pgn->setGameEndTime(gameEndTime);
+
 	m_pgn->setResult(m_result);
 	m_pgn->setResultDescription(m_result.description());
 
@@ -337,6 +315,26 @@ void ChessGame::startTurn()
 		m_player[side.opposite()]->clearPonderState();
 		m_player[side]->makeBookMove(move);
 	}
+}
+
+void ChessGame::onAdjudication(const Chess::Result& result)
+{
+	if (m_finished || result.type() != Chess::Result::Adjudication)
+		return;
+
+	m_result = result;
+
+	stop();
+}
+
+void ChessGame::onResignation(const Chess::Result& result)
+{
+	if (m_finished || result.type() != Chess::Result::Resignation)
+		return;
+
+	m_result = result;
+
+	stop();
 }
 
 void ChessGame::onResultClaim(const Chess::Result& result)
@@ -713,6 +711,8 @@ void ChessGame::startGame()
 	initializePgn();
 	emit started(this);
 	emit fenChanged(m_board->startingFenString());
+	QDateTime gameStartTime = QDateTime::currentDateTime();
+	m_pgn->setGameStartTime(gameStartTime);
 
 	for (int i = 0; i < 2; i++)
 	{

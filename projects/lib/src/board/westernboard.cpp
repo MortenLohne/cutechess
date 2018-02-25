@@ -31,6 +31,9 @@ WesternBoard::WesternBoard(WesternZobrist* zobrist)
 	  m_enpassantSquare(0),
 	  m_enpassantTarget(0),
 	  m_kingCanCapture(true),
+	  m_hasCastling(true),
+	  m_pawnHasDoubleStep(true),
+	  m_hasEnPassantCaptures(true),
 	  m_pawnAmbiguous(false),
 	  m_zobrist(zobrist)
 {
@@ -66,9 +69,33 @@ bool WesternBoard::kingCanCapture() const
 	return true;
 }
 
+bool WesternBoard::hasCastling() const
+{
+	return true;
+}
+
+bool WesternBoard::pawnHasDoubleStep() const
+{
+	return true;
+}
+
+bool WesternBoard::hasEnPassantCaptures() const
+{
+	return pawnHasDoubleStep();
+}
+
+bool WesternBoard::variantHasChanneling(Side, int) const
+{
+	return false;
+}
+
 void WesternBoard::vInitialize()
 {
 	m_kingCanCapture = kingCanCapture();
+	m_hasCastling = hasCastling();
+	m_pawnHasDoubleStep = pawnHasDoubleStep();
+	m_hasEnPassantCaptures = hasEnPassantCaptures();
+
 	m_arwidth = width() + 2;
 
 	m_castlingRights.rookSquare[Side::White][QueenSide] = 0;
@@ -127,7 +154,6 @@ WesternBoard::CastlingSide WesternBoard::castlingSide(const Move& move) const
 {
 	int target = move.targetSquare();
 	const int* rookSq = m_castlingRights.rookSquare[sideToMove()];
-
 	if (target == rookSq[QueenSide])
 		return QueenSide;
 	if (target == rookSq[KingSide])
@@ -206,10 +232,8 @@ QString WesternBoard::sanMoveString(const Move& move)
 				str += checkOrMate;
 			return str;
 		}
-		else
-			str += pieceSymbol(piece).toUpper();
 	}
-	else	// not king or pawn
+	if (piece.type() != Pawn)	// not pawn
 	{
 		str += pieceSymbol(piece).toUpper();
 		QVarLengthArray<Move> moves;
@@ -567,6 +591,9 @@ QString WesternBoard::vFenString(FenNotation notation) const
 
 bool WesternBoard::parseCastlingRights(QChar c)
 {
+	if (!m_hasCastling)
+		return false;
+
 	int offset = 0;
 	CastlingSide cside = NoCastlingSide;
 	Side side = (c.isUpper()) ? upperCaseSide() : upperCaseSide().opposite();
@@ -656,27 +683,41 @@ bool WesternBoard::vSetFenString(const QStringList& fen)
 	if (!kingsCountAssertion(kingCount[Side::White],
 				 kingCount[Side::Black]))
 		return false;
+
+	// short non-standard format without castling and ep fields?
+	bool isShortFormat = false;
+	if (fen.size() < 3)
+		token->toInt(&isShortFormat);
+
+	// allowed only for variants without castling and en passant captures
+	if (isShortFormat && (m_hasCastling || m_hasEnPassantCaptures))
+		return false;
+
 	// Castling rights
 	m_castlingRights.rookSquare[Side::White][QueenSide] = 0;
 	m_castlingRights.rookSquare[Side::White][KingSide] = 0;
 	m_castlingRights.rookSquare[Side::Black][QueenSide] = 0;
 	m_castlingRights.rookSquare[Side::Black][KingSide] = 0;
-	if (*token != "-")
-	{
-		QString::const_iterator c;
-		for (c = token->begin(); c != token->end(); ++c)
-		{
-			if (!parseCastlingRights(*c))
-				return false;
-		}
-	}
 
+	if (!isShortFormat)
+	{
+		if (*token != "-")
+		{
+			QString::const_iterator c;
+			for (c = token->begin(); c != token->end(); ++c)
+			{
+				if (!parseCastlingRights(*c))
+					return false;
+			}
+		}
+		++token;
+	}
 	// En-passant square
-	++token;
 	m_enpassantSquare = 0;
 	Side side(sideToMove());
 	m_sign = (side == Side::White) ? 1 : -1;
-	if (*token != "-")
+
+	if (m_hasEnPassantCaptures && *token != "-")
 	{
 		int epSq = squareIndex(*token);
 		int fenEpTgt = 0;
@@ -718,9 +759,10 @@ bool WesternBoard::vSetFenString(const QStringList& fen)
 			// set ep square and target
 			setEnpassantSquare(epSq, epTgt);
 	}
+	if (!isShortFormat)
+		++token;
 
 	// Reversible halfmove count
-	++token;
 	if (token != fen.end())
 	{
 		bool ok;
@@ -783,6 +825,12 @@ void WesternBoard::removeCastlingRights(int square)
 		setCastlingSquare(side, KingSide, 0);
 }
 
+void WesternBoard::removeCastlingRights(Side side)
+{
+	setCastlingSquare(side, QueenSide, 0);
+	setCastlingSquare(side, KingSide, 0);
+}
+
 int WesternBoard::castlingFile(CastlingSide castlingSide) const
 {
 	Q_ASSERT(castlingSide != NoCastlingSide);
@@ -837,7 +885,8 @@ void WesternBoard::vMakeMove(const Move& move, BoardTransition* transition)
 			Piece rook = Piece(side, Rook);
 			setSquare(rookSource, Piece::NoPiece);
 			setSquare(rookTarget, rook);
-			isReversible = false;
+			// FIDE rules 5.2, 9.3, PGN/FEN spec. 16.1.3.5:
+			// 50-moves counting goes on when castling.
 
 			if (transition != nullptr)
 				transition->addMove(chessSquare(rookSource),
@@ -898,6 +947,9 @@ void WesternBoard::vMakeMove(const Move& move, BoardTransition* transition)
 		removeCastlingRights(target);
 		isReversible = false;
 	}
+
+	if (promotionType != Piece::NoPiece)
+		isReversible = false;
 
 	if (transition != nullptr)
 	{
@@ -964,7 +1016,12 @@ void WesternBoard::vUndoMove(const Move& move)
 	if (move.promotion() != Piece::NoPiece)
 	{
 		if (source != 0)
-			setSquare(source, Piece(side, Pawn));
+		{
+			if (variantHasChanneling(side, source))
+				setSquare(source, pieceAt(target));
+			else
+				setSquare(source, Piece(side, Pawn));
+		}
 	}
 	else
 		setSquare(source, pieceAt(target));
@@ -1019,13 +1076,15 @@ bool WesternBoard::inCheck(Side side, int square) const
 		}
 	}
 
+	Piece opKing(opSide, King);
 	Piece piece;
 	
 	// Knight, archbishop, chancellor attacks
 	for (int i = 0; i < m_knightOffsets.size(); i++)
 	{
 		piece = pieceAt(square + m_knightOffsets[i]);
-		if (piece.side() == opSide && pieceHasMovement(piece.type(), KnightMovement))
+		if (piece.side() == opSide
+		&&  pieceHasMovement(piece.type(), KnightMovement))
 			return true;
 	}
 	
@@ -1034,7 +1093,8 @@ bool WesternBoard::inCheck(Side side, int square) const
 	{
 		int offset = m_bishopOffsets[i];
 		int targetSquare = square + offset;
-		if (m_kingCanCapture && targetSquare == m_kingSquare[opSide])
+		if (m_kingCanCapture
+		&&  pieceAt(targetSquare) == opKing)
 			return true;
 		while ((piece = pieceAt(targetSquare)).isEmpty()
 		||     piece.side() == opSide)
@@ -1054,7 +1114,8 @@ bool WesternBoard::inCheck(Side side, int square) const
 	{
 		int offset = m_rookOffsets[i];
 		int targetSquare = square + offset;
-		if (m_kingCanCapture && targetSquare == m_kingSquare[opSide])
+		if (m_kingCanCapture
+		&&  pieceAt(targetSquare) == opKing)
 			return true;
 		while ((piece = pieceAt(targetSquare)).isEmpty()
 		||     piece.side() == opSide)
@@ -1170,7 +1231,9 @@ void WesternBoard::generatePawnMoves(int sourceSquare,
 				moves.append(Move(sourceSquare, targetSquare));
 
 			// Double step
-			if (isNormalStep && pieceAt(sourceSquare + step * 2).isWall())
+			if (isNormalStep
+			&&  m_pawnHasDoubleStep
+			&&  pieceAt(sourceSquare + step * 2).isWall())
 			{
 				targetSquare += pawnPushOffset(pStep, m_sign);
 				capture = pieceAt(targetSquare);

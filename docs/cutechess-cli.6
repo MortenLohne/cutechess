@@ -1,4 +1,4 @@
-.Dd October 27, 2015
+.Dd February 8, 2018
 .Dt CUTECHESS-CLI 6
 .Os
 .Sh NAME
@@ -43,6 +43,8 @@ Five-check Chess
 Andernach Chess
 .It antiandernach
 Anti-Andernach Chess
+.It antichess
+Antichess / Losing Chess
 .It atomic
 Atomic Chess
 .It berolina
@@ -51,18 +53,40 @@ Berolina Chess
 Capablanca Chess
 .It caparandom
 Capablanca Random Chess
+.It chancellor
+Chancellor Chess (9x9)
+.It changeover
+Change-Over Chess
 .It checkless
 Checkless Chess
 .It chessgi
 Chessgi / Drop Chess
+.It circulargryphon
+Circular Gryphon Chess
+.It coregal
+Co-regal Chess
+.It courier
+Courier Chess (Medieval)
 .It crazyhouse
 Crazyhouse (Drop Chess Variant)
+.It displacedgrid
+Displaced Grid Chess
+.It embassy
+Embassy Chess
 .It extinction
 Extinction Chess
 .It fischerandom
 Fischer Random Chess / Chess 960
+.It giveaway
+Giveaway Chess (Losing Chess)
 .It gothic
 Gothic Chess
+.It grid
+Grid Chess
+.It gridolina
+Berolina Grid Chess
+.It gryphon
+Gryphon Chess
 .It horde
 Horde Chess (v2)
 .It janus
@@ -77,10 +101,30 @@ Knightmate
 Loop Chess (Drop Chess Variant)
 .It losers
 Loser's Chess
+.It modern
+Modern Chess (9x9)
+.It pocketknight
+Pocket Knight Chess
 .It racingkings
 Racing Kings Chess
+.It seirawan
+S-Chess (Seirawan Chess)
+.It shatranj
+Shatranj
+.It simplifiedgryphon
+Simplified Gryphon Chess
+.It slippedgrid
+Slipped Grid Chess
+.It suicide
+Suicide Chess (Losing Chess Variant)
 .It superandernach
 Super-Andernach Chess
+.It threekings
+Three Kings Chess
+.It twokings
+Two Kings Each Chess (Wild 9)
+.It twokingssymmetric
+Symmetrized Wild 9
 .It standard
 Standard Chess (default)
 .El
@@ -216,11 +260,21 @@ Save the games to
 in PGN format. Use the
 .Cm min
 argument to save in a minimal PGN format.
+.It Fl epdout Ar file
+Save the games to
+.Ar file
+in FEN format.
 .It Fl recover
 Restart crashed engines instead of stopping the game.
-.It Fl repeat
-Play each opening twice so that both players get to play it on both
-sides.
+.It Fl repeat Bq Cm Ar n
+Play each opening twice (or
+.Ar n
+times). Unless the -noswap option is used, the players swap
+sides after each game. So they get to play the
+opening on both sides. Please note that a new encounter will use
+a new opening.
+.It Fl noswap
+Do not swap sides of paired engines
 .It Fl seeds Ar n
 Set the first
 .Ar n

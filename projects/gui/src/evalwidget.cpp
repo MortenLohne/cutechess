@@ -97,8 +97,9 @@ void EvalWidget::onEval(const MoveEvaluation& eval)
 	auto nps = eval.nps();
 	if (nps)
 	{
+		QString npsStr = QString("%1k").arg(nps / 1000);
 		auto item = m_statsTable->itemPrototype()->clone();
-		item->setText(QString::number(nps));
+		item->setText(npsStr);
 		m_statsTable->setItem(0, NpsHeader, item);
 	}
 	if (eval.tbHits())
@@ -152,9 +153,7 @@ void EvalWidget::onEval(const MoveEvaluation& eval)
 	if (eval.nodeCount())
 		nodeCount = QString::number(eval.nodeCount());
 
-	QString score;
-	if (eval.score() != MoveEvaluation::NULL_SCORE)
-		score = QString::number(double(eval.score()) / 100.0, 'f', 2);
+	QString score = eval.scoreText();
 
 	QVector<QTableWidgetItem*> items;
 	items << new QTableWidgetItem(depth)

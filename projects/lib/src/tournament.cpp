@@ -47,13 +47,15 @@ Tournament::Tournament(GameManager* gameManager, QObject *parent)
 	  m_openingDepth(1024),
 	  m_seedCount(0),
 	  m_stopping(false),
-	  m_repeatOpening(false),
+	  m_openingRepetitions(1),
 	  m_recover(false),
 	  m_pgnCleanup(true),
 	  m_finished(false),
 	  m_bookOwnership(false),
 	  m_openingSuite(nullptr),
 	  m_sprt(new Sprt),
+	  m_repetitionCounter(0),
+	  m_swapSides(true),
 	  m_pgnOutMode(PgnGame::Verbose),
 	  m_pair(nullptr)
 {
@@ -81,6 +83,12 @@ Tournament::~Tournament()
 
 	delete m_openingSuite;
 	delete m_sprt;
+
+	if (m_pgnFile.isOpen())
+		m_pgnFile.close();
+
+	if (m_epdFile.isOpen())
+		m_epdFile.close();
 }
 
 GameManager* Tournament::gameManager() const
@@ -250,9 +258,23 @@ void Tournament::setPgnCleanupEnabled(bool enabled)
 	m_pgnCleanup = enabled;
 }
 
-void Tournament::setOpeningRepetition(bool repeat)
+void Tournament::setEpdOutput(const QString& fileName)
 {
-	m_repeatOpening = repeat;
+	if (fileName != m_epdFile.fileName())
+	{
+		m_epdFile.close();
+		m_epdFile.setFileName(fileName);
+	}
+}
+
+void Tournament::setOpeningRepetitions(int count)
+{
+	m_openingRepetitions = count;
+}
+
+void Tournament::setSwapSides(bool enabled)
+{
+	m_swapSides = enabled;
 }
 
 void Tournament::setOpeningBookOwnership(bool enabled)
@@ -332,24 +354,27 @@ void Tournament::startGame(TournamentPair* pair)
 	game->setOpeningBook(white.book(), Chess::Side::White, white.bookDepth());
 	game->setOpeningBook(black.book(), Chess::Side::Black, black.bookDepth());
 
-	bool isRepeat = false;
 	if (!m_startFen.isEmpty() || !m_openingMoves.isEmpty())
 	{
 		game->setStartingFen(m_startFen);
 		game->setMoves(m_openingMoves);
 		m_startFen.clear();
 		m_openingMoves.clear();
-		isRepeat = true;
+		m_repetitionCounter++;
 	}
-	else if (m_openingSuite != nullptr)
+	else
 	{
-		if (!game->setMoves(m_openingSuite->nextGame(m_openingDepth)))
-			qWarning("The opening suite is incompatible with the "
-				 "current chess variant");
+		m_repetitionCounter = 1;
+		if (m_openingSuite != nullptr)
+		{
+			if (!game->setMoves(m_openingSuite->nextGame(m_openingDepth)))
+				qWarning("The opening suite is incompatible with the "
+				"current chess variant");
+		}
 	}
 
 	game->generateOpening();
-	if (m_repeatOpening && !isRepeat)
+	if (m_repetitionCounter < m_openingRepetitions)
 	{
 		m_startFen = game->startingFen();
 		if (m_startFen.isEmpty() && board->isRandomVariant())
@@ -380,7 +405,8 @@ void Tournament::startGame(TournamentPair* pair)
 
 	// Make sure the next game (if any) between the pair will
 	// start with reversed colors.
-	m_pair->swapPlayers();
+	if (m_swapSides)
+		m_pair->swapPlayers();
 
 	auto whiteBuilder = white.builder();
 	auto blackBuilder = black.builder();
@@ -470,6 +496,45 @@ bool Tournament::writePgn(PgnGame* pgn, int gameNumber)
 	return ok;
 }
 
+bool Tournament::writeEpd(ChessGame *game)
+{
+	Q_ASSERT(game != nullptr);
+
+	if (m_epdFile.fileName().isEmpty())
+		return true;
+
+	bool isOpen = m_epdFile.isOpen();
+	if (!isOpen || !m_epdFile.exists())
+	{
+		if (isOpen)
+		{
+			qWarning("EPD file %s does not exist. Reopening...",
+				 qPrintable(m_epdFile.fileName()));
+			m_epdFile.close();
+		}
+
+		if (!m_epdFile.open(QIODevice::WriteOnly | QIODevice::Append))
+		{
+			qWarning("Could not open EPD file %s",
+				 qPrintable(m_epdFile.fileName()));
+			return false;
+		}
+		m_epdOut.setDevice(&m_epdFile);
+	}
+
+	const QString& epdPos = game->board()->fenString();
+	m_epdOut << epdPos << "\n";
+	m_epdOut.flush();
+	bool ok = true;
+	if (m_epdFile.error() != QFile::NoError)
+	{
+		ok = false;
+		qWarning("Could not write EPD position");
+	}
+
+	return ok;
+}
+
 void Tournament::addScore(int player, int score)
 {
 	m_players[player].addScore(score);
@@ -534,9 +599,8 @@ void Tournament::onGameFinished(ChessGame* game)
 		break;
 	}
 
+	writeEpd(game);
 	writePgn(pgn, gameNumber);
-	if (m_pgnCleanup)
-		delete pgn;
 
 	Chess::Result::Type resultType(game->result().type());
 	bool crashed = (resultType == Chess::Result::Disconnection ||
@@ -552,6 +616,9 @@ void Tournament::onGameFinished(ChessGame* game)
 	}
 
 	emit gameFinished(game, gameNumber, iWhite, iBlack);
+
+	if (m_pgnCleanup)
+		delete pgn;
 
 	if (areAllGamesFinished() || (m_stopping && m_gameData.isEmpty()))
 	{

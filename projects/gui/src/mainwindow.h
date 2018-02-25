@@ -20,6 +20,7 @@
 
 #include <QMainWindow>
 #include <QPointer>
+#include <board/side.h>
 
 namespace Chess {
 	class Board;
@@ -66,6 +67,7 @@ class MainWindow : public QMainWindow
 		void onWindowMenuAboutToShow();
 		void showGameWindow();
 		void updateWindowTitle();
+		void updateMenus();
 		bool save();
 		bool saveAs();
 		void onTabChanged(int index);
@@ -80,6 +82,10 @@ class MainWindow : public QMainWindow
 		void copyFen();
 		void showAboutDialog();
 		void closeAllGames();
+		void adjudicateDraw();
+		void adjudicateWhiteWin();
+		void adjudicateBlackWin();
+		void resignGame();
 
 	private:
 		struct TabData
@@ -101,6 +107,7 @@ class MainWindow : public QMainWindow
 		void readSettings();
 		void writeSettings();
 		QString genericTitle(const TabData& gameData) const;
+		QString nameOnClock(const QString& name, Chess::Side side) const;
 		void lockCurrentGame();
 		void unlockCurrentGame();
 		bool saveGame(const QString& fileName);
@@ -110,6 +117,7 @@ class MainWindow : public QMainWindow
 		int tabIndex(ChessGame* game) const;
 		int tabIndex(Tournament* tournament, bool freeTab = false) const;
 		void addDefaultWindowMenu();
+		void adjudicateGame(Chess::Side winner);
 
 		QMenu* m_gameMenu;
 		QMenu* m_tournamentMenu;
@@ -126,6 +134,10 @@ class MainWindow : public QMainWindow
 
 		QAction* m_quitGameAct;
 		QAction* m_newGameAct;
+		QAction* m_adjudicateBlackWinAct;
+		QAction* m_adjudicateWhiteWinAct;
+		QAction* m_adjudicateDrawAct;
+		QAction* m_resignGameAct;
 		QAction* m_closeGameAct;
 		QAction* m_saveGameAct;
 		QAction* m_saveGameAsAct;
@@ -154,6 +166,8 @@ class MainWindow : public QMainWindow
 		QString m_currentFile;
 		bool m_closing;
 		bool m_readyToClose;
+
+		bool m_firstTabAutoCloseEnabled;
 };
 
 #endif // MAINWINDOW_H

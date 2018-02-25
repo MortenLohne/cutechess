@@ -14,16 +14,28 @@ Options:
 			'5check': Five-check Chess
 			'andernach': Andernach Chess
 			'antiandernach': Anti-Andernach Chess
+			'antichess': Antichess (Losing Chess)
 			'atomic': Atomic Chess
 			'berolina': Berolina Chess
 			'capablanca': Capablanca Chess
 			'caparandom': Capablanca Random Chess
+			'chancellor': Chancellor Chess (9x9)
+			'changeover': Change-Over Chess
 			'checkless': Checkless Chess
+			'courier': Courier Chess
 			'chessgi': Chessgi (Drop Chess)
+			'circulargryphon': Circular Gryphon Chess
+			'coregal': Co-regal Chess
 			'crazyhouse': Crazyhouse (Drop Chess)
+			'discplacedgrid': Displaced Grid Chess
+			'embassy': Embassy Chess
 			'extinction': Extinction Chess
 			'fischerandom': Fischer Random Chess/Chess 960
+			'giveaway': Giveaway Chess (Losing Chess)
 			'gothic': Gothic Chess
+			'grid': Grid Chess
+			'gridolina': Berolina Grid Chess
+			'gryphon': Gryphon Chess
 			'horde': Horde Chess (v2)
 			'janus': Janus Chess
 			'kinglet': Kinglet Chess
@@ -31,9 +43,19 @@ Options:
 			'knightmate': Knightmate
 			'loop': Loop Chess (Drop Chess)
 			'losers': Loser's Chess
+			'modern': Modern Chess (9x9)
+			'pocketknight': Pocket Knight Chess
 			'racingkings': Racing Kings Chess
 			'sjadam': Sjadam chess
+			'seirawan': S-Chess (Seirawan Chess)
+			'shatranj': Shatranj
+			'slippedgrid': Slipped Grid Chess
+			'simplifiedgryphon': Simplified Gryphon Chess
+			'suicide': Suicide Chess (Losing Chess)
 			'superandernach': Super-Andernach Chess
+			'threekings': Three Kings Chess
+			'twokings': Two Kings Each Chess (Wild 9)
+			'twokingssymmetric': Symmetrical Two Kings Each Chess
 			'standard': Standard Chess (default).
   -concurrency N	Set the maximum number of concurrent games to N
   -draw movenumber=NUMBER movecount=COUNT score=SCORE
@@ -92,9 +114,13 @@ Options:
 			'disk': The book is accessed directly on disk.
   -pgnout FILE [min]	Save the games to FILE in PGN format. Use the 'min'
 			argument to save in a minimal/compact PGN format.
+  -epdout FILE		Save the end position of the games to FILE in FEN format.
   -recover		Restart crashed engines instead of stopping the match
-  -repeat		Play each opening twice so that both players get
-			to play it on both sides
+  -repeat [N]		Play each opening twice (or N times). Unless the -noswap
+			option is used, the players swap sides after each game.
+			So they get to play the opening on both sides. Please
+			note that a new encounter will use a new opening.
+  -noswap		Do not swap sides of paired engines
   -seeds N		Set the first N engines as seeds in the tournament
   -site SITE		Set the site/location to SITE
   -srand N		Set the seed for the random number generator to N
