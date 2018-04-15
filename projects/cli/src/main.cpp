@@ -244,6 +244,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 	parser.addOption("-concurrency", QVariant::Int, 1, 1);
 	parser.addOption("-draw", QVariant::StringList);
 	parser.addOption("-resign", QVariant::StringList);
+	parser.addOption("-maxmoves", QVariant::Int, 1, 1);
 	parser.addOption("-tb", QVariant::String, 1, 1);
 	parser.addOption("-tbpieces", QVariant::Int, 1, 1);
 	parser.addOption("-tbignore50", QVariant::Bool, 0, 0);
@@ -274,7 +275,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 	Tournament* tournament = TournamentFactory::create(ttype, manager, parent);
 	if (tournament == nullptr)
 	{
-		qWarning("Invalid tournament type: %s", qPrintable(ttype));
+		qWarning("Invalid tournament type: %s", qUtf8Printable(ttype));
 		return nullptr;
 	}
 
@@ -346,6 +347,13 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 			if (ok)
 				adjudicator.setResignThreshold(moveCount, -score);
 		}
+		// Maximum game length before draw adjudication
+		else if (name == "-maxmoves")
+		{
+			ok = value.toInt() >= 0;
+			if (ok)
+				adjudicator.setMaximumGameLength(value.toInt());
+		}
 		// Syzygy tablebase adjudication
 		else if (name == "-tb")
 		{
@@ -384,7 +392,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 			{
 				qWarning("Tournament \"%s\" does not support "
 					 "user-defined round multipliers",
-					 qPrintable(tournament->type()));
+					 qUtf8Printable(tournament->type()));
 				ok = false;
 			}
 			else
@@ -431,7 +439,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 			else if (ok)
 			{
 				qWarning("Invalid opening suite format: \"%s\"",
-					 qPrintable(params["format"]));
+					 qUtf8Printable(params["format"]));
 				ok = false;
 			}
 
@@ -443,7 +451,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 			else if (ok)
 			{
 				qWarning("Invalid opening selection order: \"%s\"",
-					 qPrintable(params["order"]));
+					 qUtf8Printable(params["order"]));
 				ok = false;
 			}
 
@@ -460,7 +468,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 								       order,
 								       start - 1);
 				if (order == OpeningSuite::RandomOrder)
-					qDebug("Indexing opening suite...");
+					qInfo("Indexing opening suite...");
 				ok = suite->initialize();
 				if (ok)
 					tournament->setOpeningSuite(suite);
@@ -550,14 +558,14 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 				tournament->setSeedCount(seedCount);
 		}
 		else
-			qFatal("Unknown argument: \"%s\"", qPrintable(name));
+			qFatal("Unknown argument: \"%s\"", qUtf8Printable(name));
 
 		if (!ok)
 		{
 			// Empty values default to boolean type
 			if (value.isValid() && value.type() == QVariant::Bool)
 				qWarning("Empty value for option \"%s\"",
-					 qPrintable(name));
+					 qUtf8Printable(name));
 			else
 			{
 				QString val;
@@ -566,7 +574,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 				else
 					val = value.toString();
 				qWarning("Invalid value for option \"%s\": \"%s\"",
-					 qPrintable(name), qPrintable(val));
+					 qUtf8Printable(name), qUtf8Printable(val));
 			}
 
 			delete match;

@@ -255,9 +255,8 @@ void ChessGame::onMoveMade(const Chess::Move& move)
 	Q_ASSERT(m_board->isLegalMove(move));
 	if (sender != playerToMove())
 	{
-		qDebug("%s tried to make a move on the opponent's turn on board %s",
-		       qPrintable(sender->name()),
-		       qPrintable(m_board->fenString()));
+		qWarning("%s tried to make a move on the opponent's turn",
+			 qUtf8Printable(sender->name()));
 		return;
 	}
 
@@ -357,14 +356,14 @@ void ChessGame::onResultClaim(const Chess::Result& result)
 	else if (!m_gameInProgress && result.winner().isNull())
 	{
 		qWarning("Unexpected result claim from %s: %s",
-			 qPrintable(sender->name()),
-			 qPrintable(result.toVerboseString()));
+			 qUtf8Printable(sender->name()),
+			 qUtf8Printable(result.toVerboseString()));
 	}
 	else if (sender->areClaimsValidated() && result.loser() != sender->side())
 	{
 		qWarning("%s forfeits by invalid result claim: %s",
-			 qPrintable(sender->name()),
-			 qPrintable(result.toVerboseString()));
+			 qUtf8Printable(sender->name()),
+			 qUtf8Printable(result.toVerboseString()));
 		m_result = Chess::Result(Chess::Result::Adjudication,
 					 sender->side().opposite(),
 					 "Invalid result claim");
@@ -391,8 +390,8 @@ Chess::Move ChessGame::bookMove(Chess::Side side)
 	if (!m_board->isLegalMove(move))
 	{
 		qWarning("Illegal opening book move for %s: %s",
-			 qPrintable(side.toString()),
-			 qPrintable(m_board->moveString(move, Chess::Board::LongAlgebraic)));
+			 qUtf8Printable(side.toString()),
+			 qUtf8Printable(m_board->moveString(move, Chess::Board::LongAlgebraic)));
 		return Chess::Move();
 	}
 
@@ -566,7 +565,7 @@ bool ChessGame::resetBoard()
 
 	if (!m_board->setFenString(fen))
 	{
-		qWarning("Invalid FEN string: %s", qPrintable(fen));
+		qWarning("Invalid FEN string: %s", qUtf8Printable(fen));
 		m_board->reset();
 		if (m_board->isRandomVariant())
 			m_startingFen = m_board->fenString();
@@ -699,8 +698,9 @@ void ChessGame::startGame()
 			return;
 		if (!player->supportsVariant(m_board->variant()))
 		{
-			qDebug("%s doesn't support variant %s",
-				qPrintable(player->name()), qPrintable(m_board->variant()));
+			qWarning("%s doesn't support variant %s",
+				 qUtf8Printable(player->name()),
+				 qUtf8Printable(m_board->variant()));
 			m_result = Chess::Result(Chess::Result::ResultError);
 			stop();
 			return;
@@ -739,7 +739,7 @@ void ChessGame::startGame()
 
 		if (!m_board->result().isNone())
 		{
-			qDebug("Every move was played from the book");
+			qWarning("Every move was played from the book");
 			m_result = m_board->result();
 			stop();
 			return;
