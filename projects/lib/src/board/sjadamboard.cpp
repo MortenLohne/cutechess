@@ -222,6 +222,7 @@ namespace Chess {
   bool SjadamBoard::vSetFenString(const QStringList& fen) {
     m_startFen = fenString();
     m_moveHistory.clear();
+    return true;
   }
   
   // TODO: Implement correctly
