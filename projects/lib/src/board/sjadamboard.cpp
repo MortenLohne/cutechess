@@ -75,7 +75,12 @@ namespace Chess {
 	}
 	// TODO: This will adjucate a draw even if either king can capture the other on the next move
 	else if (numPieces == 2) {
-	  return Result(Result::Draw, Side::NoSide, tr("Draw by stalemate"));
+	  auto str = tr("Draw by insufficient material");
+	  return Result(Result::Draw, Side::NoSide, str);
+	}
+	else if (m_reversibleMoveCount >= 100) {
+	  auto str = tr("Draw by fifty moves rule");
+	  return Result(Result::Draw, Side::NoSide, str);
 	}
 	else {
 	  return Result();
@@ -160,6 +165,7 @@ namespace Chess {
     int fromSquare = move.sourceSquare();
     int sjadamSquare = move.sjadamSquare();
     int toSquare = move.targetSquare();
+    
     // TODO: Does not correctly revoke castling or en passant rights
     // First do sjadam jump, if any
     if (sjadamSquare != fromSquare) {
@@ -167,11 +173,18 @@ namespace Chess {
       setSquare(sjadamSquare, pieceAt(fromSquare));
       setSquare(fromSquare, Piece());
     }
-    // TODO: Does not correctly increment half move counters
+
     // Do regular chess move, if any
     Move chessMove = SjadamBoard::toNormalMove(move);
     if (sjadamSquare != toSquare) {
-      //qInfo("Doing regular chess move part");
+      // TODO: 50-move counter is not reset on promotions
+      // TODO: Capturetype may not work correctly
+      if (captureType(chessMove) != Piece::NoPiece){
+	m_reversibleMoveCount = 0;
+      }
+      else {
+	m_reversibleMoveCount++;
+      }
       WesternBoard::vMakeMove(chessMove, transition);
     }
     // Changing sides is taken care of in board::makeMove()
