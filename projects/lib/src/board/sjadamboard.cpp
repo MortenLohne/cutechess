@@ -78,7 +78,7 @@ namespace Chess {
 	  auto str = tr("Draw by insufficient material");
 	  return Result(Result::Draw, Side::NoSide, str);
 	}
-	else if (m_reversibleMoveCount >= 100) {
+	else if (m_halfMoveClock >= 100) {
 	  auto str = tr("Draw by fifty moves rule");
 	  return Result(Result::Draw, Side::NoSide, str);
 	}
@@ -165,6 +165,7 @@ namespace Chess {
     int fromSquare = move.sourceSquare();
     int sjadamSquare = move.sjadamSquare();
     int toSquare = move.targetSquare();
+    Side color = sideToMove();
     
     // TODO: Does not correctly revoke castling or en passant rights
     // First do sjadam jump, if any
@@ -174,23 +175,26 @@ namespace Chess {
       setSquare(fromSquare, Piece());
     }
 
+    bool isPromotion = (color == Side::Black && chessSquare(toSquare).rank() == 0)
+      || (color == Side::White && chessSquare(toSquare).rank() == 7);
+    
+    if (isPromotion) {
+      m_halfMoveClock = 0;
+    }
+    
     // Do regular chess move, if any
     Move chessMove = SjadamBoard::toNormalMove(move);
     if (sjadamSquare != toSquare) {
-      // TODO: 50-move counter is not reset on promotions
-      // TODO: Capturetype may not work correctly
-      if (captureType(chessMove) != Piece::NoPiece){
-	m_reversibleMoveCount = 0;
+      if (captureType(chessMove) != Piece::NoPiece || isPromotion) {
+	m_halfMoveClock = 0;
       }
       else {
-	m_reversibleMoveCount++;
+	m_halfMoveClock++;
       }
       WesternBoard::vMakeMove(chessMove, transition);
     }
     // Changing sides is taken care of in board::makeMove()
-    if (pieceAt(toSquare).type() != King &&
-	((chessSquare(toSquare).rank() == 7 && m_side == Side::White)
-	 || (chessSquare(toSquare).rank() == 0 && m_side == Side::Black))) {
+    if (pieceAt(toSquare).type() != King && isPromotion) {
       
       Piece piece = pieceAt(toSquare);
       Piece queen = Piece(piece.side(), Queen);
